@@ -2,6 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-neutral-50 text-neutral-900 antialiased;
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-white font-sans text-secondary;
+  }
+
+  #root {
+    @apply min-h-dvh;
+  }
+}
+
+@layer components {
+  .field-label {
+    @apply block text-sm font-semibold text-secondary;
+  }
+
+  .field-hint {
+    @apply text-sm leading-6 text-accent;
+  }
+
+  .field-input {
+    @apply w-full rounded-2xl border border-light bg-white px-4 py-3.5 text-base text-secondary shadow-soft outline-none transition placeholder:text-accent/80 focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:bg-light disabled:text-accent;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-base font-semibold text-white shadow-soft transition hover:bg-primary-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-accent disabled:text-white disabled:shadow-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-full border-2 border-primary bg-white px-6 py-3 text-base font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
+  }
+
+  .card {
+    @apply rounded-2xl border border-light bg-white p-6 shadow-card;
+  }
 }
