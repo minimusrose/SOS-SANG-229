@@ -267,6 +267,7 @@ def test_tracking_and_confirm_donation(
     tracking = client.get("/requests/REQ-DEMO-TRACK")
     assert tracking.status_code == 200
     track_body = tracking.json()
+    assert track_body["id"] == urgency_id
     assert track_body["alerted_donors_count"] == 1
     assert track_body["confirmed_donations_count"] == 0
     assert track_body["status"] == "alerting"
@@ -276,6 +277,7 @@ def test_tracking_and_confirm_donation(
     listed = client.get("/requests")
     assert listed.status_code == 200
     assert listed.json()[0]["public_ref"] == "REQ-DEMO-TRACK"
+    assert listed.json()[0]["id"] == urgency_id
     assert "phone" not in listed.json()[0]
     assert "blood_group_needed" not in listed.json()[0]
 

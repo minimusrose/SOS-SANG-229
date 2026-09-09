@@ -95,8 +95,8 @@ Une urgence **doit** cibler `hospitals.is_recognized = true` (`app.rules.require
 | `POST` | `/donors` | Inscription donneur |
 | `POST` | `/alerts` | Créer une urgence + matching |
 | `POST` | `/donations` | Confirmer un don |
-| `GET` | `/requests` | Liste de suivi (compteurs) |
-| `GET` | `/requests/{public_ref}` | Suivi d’une urgence |
+| `GET` | `/requests` | Liste de suivi (compteurs + `id`) |
+| `GET` | `/requests/{public_ref}` | Suivi d’une urgence (`id` pour `POST /donations`) |
 
 Les réponses de suivi / liste **n’incluent pas** les numéros de téléphone ni le GPS.
 `POST /donors` omet aussi le téléphone en réponse.

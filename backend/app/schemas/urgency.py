@@ -84,6 +84,7 @@ class UrgencyCreateResponse(UrgencyRequestRead):
 class UrgencySummary(BaseModel):
     """List row for requesters. No phone, GPS, or blood group."""
 
+    id: UUID
     public_ref: str
     status: UrgencyStatus
     hospital_name: str
@@ -98,6 +99,7 @@ class UrgencySummary(BaseModel):
 class UrgencyTrackingRead(BaseModel):
     """Requester tracking. Phone and GPS are omitted."""
 
+    id: UUID
     public_ref: str
     status: UrgencyStatus
     blood_group_needed: BloodGroup = Field(description=SENSITIVE_NOTE)

@@ -2,13 +2,13 @@
 
 Plateforme MVP d’alerte et de matching donneur de sang pour le **Hackathon Cursor Bénin** (Bénin).
 
-En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer une alerte. Le système rapproche cette demande des donneurs compatibles à proximité (SMS prévu plus tard). Le frontend est encore une **maquette statique** (pas branchée à l’API). Le backend expose les endpoints métier + matching PostGIS.
+En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer une alerte. Le système rapproche cette demande des donneurs compatibles à proximité (SMS prévu plus tard). Le frontend React est branché à l’API FastAPI en local/dev. Twilio n’est **pas** appelé.
 
 ## Stack
 
 | Couche | Choix | Statut |
 | --- | --- | --- |
-| Frontend | React (JavaScript) + Tailwind CSS + Vite | Maquette statique (4 écrans) |
+| Frontend | React (JavaScript) + Tailwind CSS + Vite | Branché à l’API (`VITE_API_BASE_URL`) |
 | Backend | Python FastAPI | Endpoints métier + matching PostGIS |
 | Base | PostgreSQL + PostGIS | Docker Compose + migrations Alembic |
 | SMS | Twilio | Prévu (variables placeholder) |
@@ -19,63 +19,71 @@ En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer 
 ```
 frontend/          # UI Vite + React
 backend/           # API FastAPI
-docker-compose.yml # Postgres + PostGIS local (non branché à l’API)
+docker-compose.yml # Postgres + PostGIS local
 .env.example       # noms de variables uniquement
 ```
 
-## Lancer en local
+## Lancer en local (frontend + API)
 
-Prérequis : Node.js 18+, Python 3.11+, (optionnel) Docker.
+Prérequis : Node.js 18+, Python 3.11+, Docker (pour Postgres + PostGIS).
 
-### Frontend
+CORS autorise `http://localhost:5173` et `http://127.0.0.1:5173`. Le frontend appelle l’API via `VITE_API_BASE_URL` (défaut `http://127.0.0.1:8000`).
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+1. Copier `.env.example` vers `.env` à la racine. Y mettre un mot de passe **local** pour `POSTGRES_PASSWORD` et `DATABASE_URL` (jamais commiter `.env`).
+2. Copier `frontend/.env.example` vers `frontend/.env` (optionnel si le défaut convient) :
 
-Ouvre [http://localhost:5173](http://localhost:5173). Routes maquette :
+   ```
+   VITE_API_BASE_URL=http://127.0.0.1:8000
+   ```
 
-- `/` — accueil
-- `/donneur/inscription` — inscription donneur
-- `/alerte` — alerte urgence
-- `/suivi` — suivi des demandes
+3. Base + migrations + seed fictif :
 
-### Backend
+   ```bash
+   docker compose up -d
+   cd backend
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   alembic upgrade head
+   python scripts/seed_demo.py
+   uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+   ```
 
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
+4. Dans un second terminal :
 
-- Santé : [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-- Docs : [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- Hôpitaux reconnus : `GET /hospitals/recognized`
-- Donneur : `POST /donors`
-- Alerte + matching : `POST /alerts`
-- Confirmation : `POST /donations`
-- Suivi : `GET /requests/{public_ref}`
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-Rayon GPS par défaut : **15 km**. Exemples curl : [backend/README.md](backend/README.md).
+Ouvre [http://localhost:5173](http://localhost:5173) (ou [http://127.0.0.1:5173](http://127.0.0.1:5173)).
 
-Copier `.env.example` vers `.env` et y mettre `DATABASE_URL` / `POSTGRES_PASSWORD` locaux (non commités) pour les migrations.
+| Route | Parcours |
+| --- | --- |
+| `/` | Accueil |
+| `/donneur/inscription` | `POST /donors` |
+| `/alerte` | `GET /hospitals/recognized` + `POST /alerts` |
+| `/suivi` | `GET /requests` |
+| `/suivi/:publicRef` | `GET /requests/{public_ref}` + `POST /donations` |
 
-### Postgres + PostGIS et migrations
+Santé API : [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health) — docs : [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-```bash
-docker compose up -d
-cd backend
-source .venv/bin/activate
-alembic upgrade head
-# optionnel, données fictives uniquement :
-python scripts/seed_demo.py
-```
+Détail backend : [backend/README.md](backend/README.md). Détail frontend : [frontend/README.md](frontend/README.md).
 
-Détail : [backend/README.md](backend/README.md). Téléphone, GPS et groupe sanguin sont des champs sensibles — ne jamais les logger en clair.
+Téléphone, GPS et groupe sanguin sont sensibles — ne jamais les logger en clair. Utiliser uniquement des données clairement fictives (`Donneur Demo`, `+22900000001`, `Zone Demo`).
+
+## Plan de test rapide
+
+1. `GET /health` → `{ "status": "ok" }`.
+2. Inscription donneur : nom `Donneur Demo`, groupe `O+`, téléphone `+22900000001`, ville `Zone Demo` → toast succès, pas de téléphone affiché.
+3. Alerte : patient `Patient Demo`, hôpital reconnu chargé depuis l’API, groupe `O+` → `public_ref` + nombre de donneurs alertés.
+4. Suivi : la nouvelle référence apparaît ; le détail montre groupe / patient / compteurs.
+5. Confirmer le don depuis l’alerte ou le suivi → compteur confirmé, statut pourvue si unités atteintes.
+6. État vide : filtre sans lignes, ou API arrêtée → message d’erreur, pas de stubs `REQ-DEMO-*`.
+7. `cd frontend && npm run build` OK.
+
+Hors scope : SMS Twilio réel, JWT, déploiement Vercel.
 
 ## Branches et PR
 
