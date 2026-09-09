@@ -33,8 +33,13 @@ def get_session_factory() -> sessionmaker[Session]:
 
 
 def get_db() -> Generator[Session, None, None]:
-    """FastAPI dependency stub for later routers. Not wired yet."""
-    session = get_session_factory()()
+    """FastAPI session dependency. DATABASE_URL must be set for write routes."""
+    from fastapi import HTTPException
+
+    try:
+        session = get_session_factory()()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     try:
         yield session
     finally:

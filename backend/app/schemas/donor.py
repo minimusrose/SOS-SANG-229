@@ -35,3 +35,17 @@ class DonorRead(BaseModel):
     is_available: bool
     created_at: datetime
     updated_at: datetime
+
+
+class DonorPublic(BaseModel):
+    """API create/read payload. Phone and GPS are omitted."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    display_name: str
+    blood_group: BloodGroup = Field(description=SENSITIVE_NOTE)
+    city: str
+    is_available: bool
+    created_at: datetime
+    updated_at: datetime

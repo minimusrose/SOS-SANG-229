@@ -2,14 +2,14 @@
 
 Plateforme MVP d’alerte et de matching donneur de sang pour le **Hackathon Cursor Bénin** (Bénin).
 
-En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer une alerte. Le système vise à rapprocher rapidement cette demande des donneurs compatibles à proximité (SMS prévu). Ce dépôt est le socle monorepo du MVP : le frontend est une **maquette statique** (pas d’API branchée) ; le backend reste un squelette.
+En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer une alerte. Le système rapproche cette demande des donneurs compatibles à proximité (SMS prévu plus tard). Le frontend est encore une **maquette statique** (pas branchée à l’API). Le backend expose les endpoints métier + matching PostGIS.
 
 ## Stack
 
 | Couche | Choix | Statut |
 | --- | --- | --- |
 | Frontend | React (JavaScript) + Tailwind CSS + Vite | Maquette statique (4 écrans) |
-| Backend | Python FastAPI | Scaffold (`GET /health`) + modèles ORM |
+| Backend | Python FastAPI | Endpoints métier + matching PostGIS |
 | Base | PostgreSQL + PostGIS | Docker Compose + migrations Alembic |
 | SMS | Twilio | Prévu (variables placeholder) |
 | Auth | JWT | Prévu (variables placeholder) |
@@ -54,6 +54,13 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 - Santé : [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 - Docs : [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- Hôpitaux reconnus : `GET /hospitals/recognized`
+- Donneur : `POST /donors`
+- Alerte + matching : `POST /alerts`
+- Confirmation : `POST /donations`
+- Suivi : `GET /requests/{public_ref}`
+
+Rayon GPS par défaut : **15 km**. Exemples curl : [backend/README.md](backend/README.md).
 
 Copier `.env.example` vers `.env` et y mettre `DATABASE_URL` / `POSTGRES_PASSWORD` locaux (non commités) pour les migrations.
 

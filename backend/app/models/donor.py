@@ -13,6 +13,7 @@ from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.donation import DonationConfirmation
+    from app.models.match import UrgencyMatch
 
 _SENSITIVE = "SENSITIVE — never log in cleartext."
 
@@ -61,5 +62,8 @@ class Donor(TimestampMixin, Base):
     is_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     donation_confirmations: Mapped[list["DonationConfirmation"]] = relationship(
+        back_populates="donor",
+    )
+    urgency_matches: Mapped[list["UrgencyMatch"]] = relationship(
         back_populates="donor",
     )

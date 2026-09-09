@@ -31,3 +31,10 @@ class DonationStatus(str, Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     CANCELLED = "cancelled"
+
+
+class MatchMethod(str, Enum):
+    """How a donor was matched to an urgency. Never log GPS or city with PII."""
+
+    GPS = "gps"
+    CITY = "city"
