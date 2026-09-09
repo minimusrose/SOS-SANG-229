@@ -1,13 +1,6 @@
-"""Shape-only schemas. Fields that would be sensitive later are omitted on purpose."""
+"""Deprecated stubs kept so older imports keep working."""
 
-from pydantic import BaseModel, Field
+from app.schemas.donor import DonorCreate as DonorCreateStub
+from app.schemas.urgency import UrgencyRequestCreate as AlertCreateStub
 
-
-class DonorCreateStub(BaseModel):
-    display_name: str = Field(examples=["Donneur Demo"])
-    blood_group: str = Field(examples=["O+"])
-
-
-class AlertCreateStub(BaseModel):
-    blood_group: str = Field(examples=["O+"])
-    zone_label: str = Field(examples=["Quartier Demo — Cotonou"])
+__all__ = ["AlertCreateStub", "DonorCreateStub"]
