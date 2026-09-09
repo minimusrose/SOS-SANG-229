@@ -40,3 +40,14 @@ class HospitalRead(BaseModel):
     is_recognized: bool
     created_at: datetime
     updated_at: datetime
+
+
+class HospitalPublic(BaseModel):
+    """Recognized-hospital select payload. No phone or GPS."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    city: str
+    is_recognized: bool

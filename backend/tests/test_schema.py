@@ -18,7 +18,13 @@ class ModelMetadataTests(unittest.TestCase):
     def test_expected_tables(self) -> None:
         self.assertEqual(
             set(Base.metadata.tables),
-            {"donors", "hospitals", "urgency_requests", "donation_confirmations"},
+            {
+                "donors",
+                "hospitals",
+                "urgency_requests",
+                "donation_confirmations",
+                "urgency_matches",
+            },
         )
 
     def test_sensitive_columns_are_marked(self) -> None:

@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     )
 
     database_url: str = ""
+    # GPS matching radius (meters). City fallback is used when GPS is missing.
+    match_radius_meters: int = 15_000
 
 
 @lru_cache
