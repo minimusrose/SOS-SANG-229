@@ -5,7 +5,7 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from app.enums import BloodGroup, MatchMethod
-from app.geo import geopoint_to_wkt
+from app.geo import geopoint_to_wkt, parse_point
 from app.matching import (
     DEFAULT_RADIUS_METERS,
     compatible_donor_groups,
@@ -14,6 +14,16 @@ from app.matching import (
 )
 from app.models import Donor, Hospital
 from app.schemas.common import GeoPoint
+
+
+def test_parse_point_accepts_wkt_and_ewkt() -> None:
+    wkt = parse_point("POINT(2.42 6.37)")
+    ewkt = parse_point("SRID=4326;POINT(2.42 6.37)")
+    assert wkt == ewkt
+    assert wkt is not None
+    assert wkt.latitude == 6.37
+    assert wkt.longitude == 2.42
+    assert parse_point(None) is None
 
 
 def test_default_radius_is_15_km() -> None:

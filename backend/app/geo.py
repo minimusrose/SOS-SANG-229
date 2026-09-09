@@ -25,7 +25,7 @@ def geopoint_to_wkt(point: GeoPoint | None) -> WKTElement | None:
 
 
 def parse_point(value: object) -> LatLon | None:
-    """Best-effort parse of WKT / WKTElement. Returns None if GPS is absent."""
+    """Best-effort parse of WKT / EWKT / WKTElement. Returns None if GPS is absent."""
     if value is None:
         return None
     text = getattr(value, "data", None)
@@ -34,6 +34,8 @@ def parse_point(value: object) -> LatLon | None:
     if not isinstance(text, str):
         return None
     stripped = text.strip()
+    if stripped.upper().startswith("SRID=") and ";" in stripped:
+        stripped = stripped.split(";", 1)[1].strip()
     if not stripped.upper().startswith("POINT"):
         return None
     inside = stripped[stripped.find("(") + 1 : stripped.rfind(")")]

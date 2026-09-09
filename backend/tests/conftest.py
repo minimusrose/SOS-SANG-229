@@ -15,6 +15,16 @@ from app.main import app
 from app.models import Base
 
 _POSTGRES_ONLY_DEFAULTS = ("gen_random_uuid()",)
+_SQLITE_GEO_FUNCS = (
+    "ST_GeogFromText",
+    "ST_GeogFromEWKT",
+    "ST_GeomFromEWKT",
+    "ST_GeomFromText",
+    "ST_AsBinary",
+    "AsBinary",
+    "ST_AsEWKB",
+    "ST_AsText",
+)
 
 
 @compiles(Geography, "sqlite")
@@ -50,8 +60,11 @@ def db_session() -> Session:
     )
 
     @event.listens_for(engine, "connect")
-    def _enable_fk(dbapi_connection, _connection_record):  # noqa: ANN001
+    def _configure_sqlite(dbapi_connection, _connection_record):  # noqa: ANN001
         dbapi_connection.execute("PRAGMA foreign_keys=ON")
+        # GeoAlchemy2 still emits PostGIS constructors; store/return WKT text.
+        for name in _SQLITE_GEO_FUNCS:
+            dbapi_connection.create_function(name, 1, lambda value: value)
 
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
