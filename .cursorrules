@@ -1,0 +1,32 @@
+# SOS Sang 229 — team conventions (Hackathon Cursor Bénin)
+
+## Security (non-negotiable)
+
+- Never commit secrets: API keys, tokens, passwords, Twilio credentials, JWT secrets.
+- `.env` is gitignored. Only `.env.example` (variable names + comments) may be committed.
+- Do not paste credentials into source, comments, README, tickets, or seed files.
+- Prefer private-safe defaults in docs (localhost URLs, empty placeholders).
+
+## Sensitive donor / health data
+
+- Phone numbers, GPS coordinates, blood group, hospital/patient names are sensitive.
+- Never log them in cleartext (no print/console/logger of raw phone, GPS, or blood group).
+- Never commit real seed data. Demo seeds must be obviously fictional
+  (e.g. display name `Donneur Demo`, blood group examples only in UI placeholders).
+- Do not use real Beninese phone numbers, real hospital patient names, or real home GPS.
+
+## Git / PR
+
+- Work on a feature branch. Naming: `<type>/<short-name>`
+  Examples: `init/setup-projet`, `feat/donor-register`, `fix/healthcheck`.
+- Types: `init`, `feat`, `fix`, `docs`, `chore`, `refactor`.
+- `main` is protected by convention: no direct commits. Open a pull request.
+- Keep PRs small and scoped. Describe how to run locally when the change affects setup.
+
+## Code style (hackathon-friendly)
+
+- Prefer simple, readable code over heavy frameworks.
+- Frontend: React (JavaScript) + Tailwind. Scaffold screens first; polish later.
+- Backend: FastAPI. Keep routers / models / schemas separated.
+- Out of scope until explicitly tasked: full PostGIS migrations, real Twilio, full JWT,
+  polished UI, production deploy configs with secrets.
