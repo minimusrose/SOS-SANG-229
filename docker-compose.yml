@@ -1,0 +1,25 @@
+# Local Postgres + PostGIS stub for later wiring.
+# The API does not connect to this database yet.
+# Do not put production credentials here.
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: sos-sang-229-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sos_sang}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-sos_sang_229}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - sos_sang_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sos_sang_pgdata:
