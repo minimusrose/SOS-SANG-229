@@ -2,13 +2,13 @@
 
 Plateforme MVP d’alerte et de matching donneur de sang pour le **Hackathon Cursor Bénin** (Bénin).
 
-En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer une alerte. Le système vise à rapprocher rapidement cette demande des donneurs compatibles à proximité (SMS prévu). Ce dépôt est le socle monorepo du MVP — les écrans et l’API sont des **squelettes**, pas encore le produit.
+En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer une alerte. Le système vise à rapprocher rapidement cette demande des donneurs compatibles à proximité (SMS prévu). Ce dépôt est le socle monorepo du MVP : le frontend est une **maquette statique** (pas d’API branchée) ; le backend reste un squelette.
 
 ## Stack
 
 | Couche | Choix | Statut |
 | --- | --- | --- |
-| Frontend | React (JavaScript) + Tailwind CSS + Vite | Scaffold (routes placeholder) |
+| Frontend | React (JavaScript) + Tailwind CSS + Vite | Maquette statique (4 écrans) |
 | Backend | Python FastAPI | Scaffold (`GET /health`) |
 | Base | PostgreSQL + PostGIS | Prévu (stub Docker uniquement) |
 | SMS | Twilio | Prévu (variables placeholder) |
@@ -35,7 +35,7 @@ npm install
 npm run dev
 ```
 
-Ouvre [http://localhost:5173](http://localhost:5173). Routes placeholder :
+Ouvre [http://localhost:5173](http://localhost:5173). Routes maquette :
 
 - `/` — accueil
 - `/donneur/inscription` — inscription donneur

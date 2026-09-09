@@ -11,13 +11,13 @@ npm run dev
 
 App : [http://localhost:5173](http://localhost:5173)
 
-## Routes placeholder
+## Routes (maquette statique)
 
 | Chemin | Écran |
 | --- | --- |
-| `/` | Accueil |
-| `/donneur/inscription` | Inscription donneur |
-| `/alerte` | Alerte urgence |
-| `/suivi` | Suivi des demandes |
+| `/` | Accueil — intention produit et accès aux 3 parcours |
+| `/donneur/inscription` | Inscription donneur (groupe, téléphone fictif, ville, consentement GPS) |
+| `/alerte` | Alerte urgence (groupe, patient démo, hôpital fictif) |
+| `/suivi` | Suivi — lignes REQ-DEMO-* et état vide |
 
-Aucun appel API n’est branché. Ne pas saisir de données personnelles réelles dans les formulaires.
+Les soumissions affichent un toast local. Aucun appel API, aucun stockage persistant. Ne pas saisir de données personnelles réelles.

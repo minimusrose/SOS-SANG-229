@@ -1,46 +1,162 @@
-export default function DonorRegistration() {
+import { useState } from "react";
+import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
+import DemoBanner from "../components/DemoBanner.jsx";
+import PageHeader from "../components/PageHeader.jsx";
+import { DEMO_CITIES } from "../data/demo.js";
+
+const INITIAL = {
+  displayName: "",
+  bloodGroup: "",
+  phone: "",
+  city: "",
+  gpsConsent: false,
+};
+
+export default function DonorRegistration({ onToast }) {
+  const [form, setForm] = useState(INITIAL);
+  const [submitted, setSubmitted] = useState(false);
+
+  const canSubmit = Boolean(form.bloodGroup && form.phone.trim() && form.city);
+
+  function update(field) {
+    return (event) => {
+      const value =
+        event.target.type === "checkbox" ? event.target.checked : event.target.value;
+      setForm((current) => ({ ...current, [field]: value }));
+    };
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (!canSubmit) return;
+    setSubmitted(true);
+    onToast(
+      "Profil donneur simulé. Rien n’a été envoyé ni enregistré — maquette locale uniquement.",
+    );
+    setForm(INITIAL);
+  }
+
   return (
-    <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Inscription donneur</h1>
-      <p className="text-sm text-neutral-600">
-        Formulaire placeholder. Ne pas saisir de vraies données personnelles.
-      </p>
-      <form className="space-y-3" onSubmit={(event) => event.preventDefault()}>
-        <label className="block space-y-1">
-          <span className="text-sm">Nom d’affichage (fictif)</span>
+    <div className="space-y-6">
+      <PageHeader kicker="Volontaire" title="Inscription donneur">
+        Créez un profil fictif pour tester le parcours. Les champs téléphone et
+        ville restent locaux à cet écran.
+      </PageHeader>
+
+      <DemoBanner>
+        Ne saisissez pas de vrai numéro, de vrai nom ni une adresse réelle. Exemple
+        attendu : Donneur Demo, 00 00 00 00, Zone Demo.
+      </DemoBanner>
+
+      <form className="card space-y-5" onSubmit={handleSubmit} autoComplete="off">
+        <div className="space-y-1.5">
+          <label htmlFor="displayName" className="field-label">
+            Nom d’affichage
+          </label>
           <input
-            className="w-full border border-neutral-300 bg-white px-3 py-2"
+            id="displayName"
+            className="field-input"
+            value={form.displayName}
+            onChange={update("displayName")}
             placeholder="Donneur Demo"
             autoComplete="off"
           />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm">Groupe sanguin (exemple)</span>
-          <select className="w-full border border-neutral-300 bg-white px-3 py-2" defaultValue="">
-            <option value="" disabled>
-              Choisir
-            </option>
-            <option>O+</option>
-            <option>O-</option>
-            <option>A+</option>
-            <option>A-</option>
-            <option>B+</option>
-            <option>B-</option>
-            <option>AB+</option>
-            <option>AB-</option>
+          <p className="field-hint">Libellé fictif visible dans la maquette uniquement.</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="bloodGroup" className="field-label">
+            Groupe sanguin <span className="font-normal text-stone-500">(requis)</span>
+          </label>
+          <BloodGroupSelect
+            id="bloodGroup"
+            value={form.bloodGroup}
+            onChange={update("bloodGroup")}
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="phone" className="field-label">
+            Téléphone <span className="font-normal text-stone-500">(requis, fictif)</span>
+          </label>
+          <input
+            id="phone"
+            type="tel"
+            inputMode="tel"
+            className="field-input"
+            value={form.phone}
+            onChange={update("phone")}
+            placeholder="00 00 00 00"
+            autoComplete="off"
+          />
+          <p className="field-hint">
+            Placeholder volontairement neutre. N’entrez pas un numéro béninois réel.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="city" className="field-label">
+            Ville / zone <span className="font-normal text-stone-500">(requis)</span>
+          </label>
+          <select
+            id="city"
+            className="field-input"
+            value={form.city}
+            onChange={update("city")}
+            required
+          >
+            <option value="">Choisir une zone démo</option>
+            {DEMO_CITIES.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
           </select>
-        </label>
-        <p className="text-sm text-neutral-500">
-          Téléphone et localisation : champs non exposés sur ce scaffold.
-        </p>
-        <button
-          type="submit"
-          className="border border-neutral-400 bg-white px-3 py-2 text-sm"
-          disabled
-        >
-          Enregistrement — à implémenter
-        </button>
+        </div>
+
+        <fieldset className="rounded-xl border border-stone-200 bg-sand-50 px-4 py-3">
+          <legend className="px-1 text-sm font-semibold text-stone-800">
+            Localisation
+          </legend>
+          <label className="mt-2 flex items-start gap-3 text-sm leading-6 text-stone-700">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-stone-300 text-brand-600 focus:ring-brand-500"
+              checked={form.gpsConsent}
+              onChange={update("gpsConsent")}
+            />
+            <span>
+              J’accepte, dans une future version, de partager une position
+              approximative pour le matching.{" "}
+              <strong className="font-semibold">Aucun GPS réel n’est demandé ici.</strong>
+            </span>
+          </label>
+          <p className="mt-2 text-xs text-stone-500">
+            {form.gpsConsent
+              ? "Consentement noté pour la maquette. La géolocalisation du navigateur reste désactivée."
+              : "Option désactivée : aucune coordonnée ne sera lue."}
+          </p>
+        </fieldset>
+
+        <div className="space-y-2">
+          <button type="submit" className="btn-primary" disabled={!canSubmit}>
+            Enregistrer le profil (démo)
+          </button>
+          {!canSubmit ? (
+            <p className="field-hint">
+              Le bouton s’active lorsque le groupe, le téléphone fictif et la ville
+              sont renseignés.
+            </p>
+          ) : null}
+          {submitted ? (
+            <p className="text-xs font-medium text-emerald-800">
+              Dernière action : succès local, formulaire réinitialisé. Aucune donnée
+              conservée.
+            </p>
+          ) : null}
+        </div>
       </form>
-    </section>
+    </div>
   );
 }
