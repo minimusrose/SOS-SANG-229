@@ -84,19 +84,17 @@ def create_alert(
         confirmed_donations_count=0,
     )
     db.add(urgency)
-    db.flush()
-
-    for match in matches:
-        db.add(
-            UrgencyMatch(
-                id=uuid4(),
-                urgency_request_id=urgency.id,
-                donor_id=match.donor.id,
-                match_method=match.method,
-            )
-        )
-
     try:
+        db.flush()
+        for match in matches:
+            db.add(
+                UrgencyMatch(
+                    id=uuid4(),
+                    urgency_request_id=urgency.id,
+                    donor_id=match.donor.id,
+                    match_method=match.method,
+                )
+            )
         db.commit()
     except IntegrityError as exc:
         db.rollback()

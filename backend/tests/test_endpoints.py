@@ -167,6 +167,25 @@ def test_create_urgency_rejects_missing_hospital(client: TestClient) -> None:
     assert response.status_code == 404
 
 
+def test_create_urgency_duplicate_public_ref_conflict(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    hospital = _recognized_hospital(db_session)
+    payload = {
+        "public_ref": "REQ-DEMO-DUP",
+        "blood_group_needed": "O+",
+        "patient_display_name": "Patient Demo",
+        "hospital_id": str(hospital.id),
+    }
+    first = client.post("/alerts", json=payload)
+    assert first.status_code == 201
+    second = client.post("/alerts", json=payload)
+    assert second.status_code == 409
+    assert "public_ref" in second.json()["detail"].lower()
+    assert "+229" not in second.text
+
+
 def test_create_urgency_matches_compatible_city_donor(
     client: TestClient,
     db_session: Session,
