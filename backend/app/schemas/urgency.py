@@ -18,7 +18,12 @@ class UrgencyRequestCreate(BaseModel):
         description=f"Demo-only display name. {SENSITIVE_NOTE}",
         examples=["Patient Demo"],
     )
-    hospital_id: UUID
+    hospital_id: UUID = Field(
+        description=(
+            "FK to hospitals.id only (no free-text hospital name). "
+            "API must reject the request if hospitals.is_recognized is false."
+        ),
+    )
     units_needed: int = Field(default=1, ge=1)
     zone_label: str | None = Field(default=None, max_length=255, examples=["Zone Demo"])
 

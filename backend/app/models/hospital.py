@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from geoalchemy2 import Geography
 from geoalchemy2.elements import WKBElement
-from sqlalchemy import Index, String, Uuid, text
+from sqlalchemy import Boolean, Index, String, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -22,8 +22,14 @@ class Hospital(TimestampMixin, Base):
     __tablename__ = "hospitals"
     __table_args__ = (
         Index("ix_hospitals_city", "city"),
+        Index("ix_hospitals_is_recognized", "is_recognized"),
         Index("ix_hospitals_location", "location", postgresql_using="gist"),
-        {"comment": "Hospitals. contact_phone and location are SENSITIVE."},
+        {
+            "comment": (
+                "Hospitals. contact_phone and location are SENSITIVE. "
+                "Urgencies may only target rows with is_recognized = true."
+            )
+        },
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -43,6 +49,16 @@ class Hospital(TimestampMixin, Base):
         String(20),
         nullable=True,
         comment=f"Demo contact phone. {_SENSITIVE}",
+    )
+    is_recognized: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment=(
+            "State-recognized facility. Default false. "
+            "Urgency requests may only target recognized hospitals."
+        ),
     )
 
     urgency_requests: Mapped[list["UrgencyRequest"]] = relationship(

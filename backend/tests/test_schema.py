@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from app.enums import BloodGroup, DonationStatus
 from app.models import Base, Donor, Hospital, UrgencyRequest
+from app.rules import UnrecognizedHospitalError, require_recognized_hospital
 from app.schemas import (
     DonationConfirmationCreate,
     DonorCreate,
@@ -34,6 +35,17 @@ class ModelMetadataTests(unittest.TestCase):
             self.assertIsNotNone(comment)
             self.assertIn("SENSITIVE", comment.upper())
 
+    def test_hospital_is_recognized_defaults_false(self) -> None:
+        column = Hospital.__table__.c.is_recognized
+        self.assertFalse(column.nullable)
+        self.assertEqual(str(column.server_default.arg), "false")
+
+    def test_urgency_uses_hospital_fk_only(self) -> None:
+        columns = set(UrgencyRequest.__table__.c.keys())
+        self.assertIn("hospital_id", columns)
+        self.assertNotIn("hospital_name", columns)
+        self.assertNotIn("hospital", columns)
+
 
 class SchemaTests(unittest.TestCase):
     def test_donor_create_fictional_payload(self) -> None:
@@ -48,6 +60,26 @@ class SchemaTests(unittest.TestCase):
     def test_hospital_create_fictional_payload(self) -> None:
         payload = HospitalCreate(name="Hopital Demo", city="Zone Demo")
         self.assertEqual(payload.name, "Hopital Demo")
+        self.assertFalse(payload.is_recognized)
+
+    def test_hospital_create_can_mark_recognized(self) -> None:
+        payload = HospitalCreate(
+            name="Hopital Demo",
+            city="Zone Demo",
+            is_recognized=True,
+        )
+        self.assertTrue(payload.is_recognized)
+
+    def test_require_recognized_hospital(self) -> None:
+        recognized = Hospital(name="Hopital Demo", city="Zone Demo", is_recognized=True)
+        unrecognized = Hospital(
+            name="Clinique Demo Non Reconnue",
+            city="Zone Demo",
+            is_recognized=False,
+        )
+        require_recognized_hospital(recognized)
+        with self.assertRaises(UnrecognizedHospitalError):
+            require_recognized_hospital(unrecognized)
 
     def test_urgency_create_fictional_payload(self) -> None:
         payload = UrgencyRequestCreate(

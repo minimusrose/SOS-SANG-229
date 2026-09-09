@@ -68,12 +68,21 @@ Puis `alembic upgrade head` comme ci-dessus.
 | --- | --- | --- |
 | `donors` | User / Donneur | `phone`, `blood_group`, `location` (GPS PostGIS) |
 | `hospitals` | Établissement | `contact_phone`, `location` |
-| `urgency_requests` | Urgence / alerte | `blood_group_needed`, `patient_display_name` (démo uniquement) |
+| `urgency_requests` | Urgence / alerte (`hospital_id` FK uniquement) | `blood_group_needed`, `patient_display_name` (démo uniquement) |
 | `donation_confirmations` | Confirmation de don | lie donneur + urgence (`confirmed_at`, `status`) |
 
 - Localisation optionnelle : `geography(POINT, 4326)` (WGS84). Pas de requêtes de matching dans ce lot.
 - Compteurs sur une urgence : `alerted_donors_count`, `confirmed_donations_count`.
 - Identifiants code en anglais ; libellés produit FR ok dans les docs.
+
+### Hôpitaux reconnus
+
+Une urgence ne peut cibler **que** un établissement avec `hospitals.is_recognized = true` (reconnus par l’État — liste démo pour le MVP).
+
+- Défaut colonne : **`false`** (non reconnu tant qu’on ne le marque pas).
+- Pas de nom d’hôpital en texte libre sur `urgency_requests` : uniquement `hospital_id` (FK).
+- Le seed marque `Hopital Demo` comme reconnu et ajoute `Clinique Demo Non Reconnue` (`is_recognized = false`) pour le contraste.
+- L’API (lot suivant) **doit refuser** toute urgence si `hospital.is_recognized` est faux. Helper : `app.rules.require_recognized_hospital`. Un trigger Postgres (`trg_urgency_recognized_hospital`) applique la même règle à l’insert/update.
 
 Les schémas Pydantic create/read sont dans `app/schemas/`. Pas de CRUD HTTP complet ici.
 

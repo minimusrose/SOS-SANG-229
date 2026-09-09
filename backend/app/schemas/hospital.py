@@ -19,6 +19,13 @@ class HospitalCreate(BaseModel):
         description=SENSITIVE_NOTE,
         examples=["+22900000099"],
     )
+    is_recognized: bool = Field(
+        default=False,
+        description=(
+            "State-recognized facility. Default false. "
+            "Urgency API must reject hospital_id when this is false."
+        ),
+    )
 
 
 class HospitalRead(BaseModel):
@@ -30,5 +37,6 @@ class HospitalRead(BaseModel):
     location: GeoPoint | None = Field(default=None, description=SENSITIVE_NOTE)
     contact_name: str | None
     contact_phone: str | None = Field(default=None, description=SENSITIVE_NOTE)
+    is_recognized: bool
     created_at: datetime
     updated_at: datetime

@@ -64,6 +64,10 @@ class UrgencyRequest(TimestampMixin, Base):
     hospital_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("hospitals.id", ondelete="RESTRICT"),
         nullable=False,
+        comment=(
+            "FK only — no free-text hospital name. "
+            "Must reference hospitals.is_recognized = true (enforced in DB + API)."
+        ),
     )
     status: Mapped[UrgencyStatus] = mapped_column(
         Enum(
