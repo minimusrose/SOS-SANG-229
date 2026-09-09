@@ -1,7 +1,9 @@
 import { useState } from "react";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
+import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import UrgencyBadge from "../components/UrgencyBadge.jsx";
 import { DEMO_HOSPITALS } from "../data/demo.js";
 
 const INITIAL = {
@@ -35,92 +37,96 @@ export default function EmergencyAlert({ onToast }) {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader kicker="Urgence" title="Alerte don de sang">
-        Déclarez un besoin fictif. Le ton est volontairement calme : l’urgence est
-        claire, sans mise en scène alarmiste.
-      </PageHeader>
+    <PageFrame>
+      <div className="space-y-8">
+        <PageHeader kicker="Urgence" title="Alerte" highlight="don de sang">
+          Déclarez un besoin fictif. L’urgence est claire, le ton reste
+          rassurant.
+        </PageHeader>
 
-      <DemoBanner>
-        Utilisez uniquement un nom de patient démo et un établissement fictif.
-        Exemple : Patient Demo, Hôpital Demo Nord.
-      </DemoBanner>
+        <UrgencyBadge>Alerte simulée · aucun envoi</UrgencyBadge>
 
-      <form className="card space-y-5" onSubmit={handleSubmit} autoComplete="off">
-        <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm leading-6 text-brand-800">
-          Cette action représentera plus tard un appel aux donneurs compatibles.
-          Aujourd’hui, elle n’envoie rien.
-        </div>
+        <DemoBanner>
+          Utilisez uniquement un nom de patient démo et un établissement fictif.
+          Exemple : Patient Demo, Hôpital Demo Nord.
+        </DemoBanner>
 
-        <div className="space-y-1.5">
-          <label htmlFor="neededGroup" className="field-label">
-            Groupe demandé <span className="font-normal text-stone-500">(requis)</span>
-          </label>
-          <BloodGroupSelect
-            id="neededGroup"
-            value={form.bloodGroup}
-            onChange={update("bloodGroup")}
-            required
-          />
-        </div>
+        <form className="card space-y-6" onSubmit={handleSubmit} autoComplete="off">
+          <div className="rounded-2xl bg-primary/5 px-5 py-4 text-sm leading-6 text-secondary">
+            Cette action représentera plus tard un appel aux donneurs
+            compatibles. Aujourd’hui, elle n’envoie rien.
+          </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="patientName" className="field-label">
-            Nom du patient (démo){" "}
-            <span className="font-normal text-stone-500">(requis)</span>
-          </label>
-          <input
-            id="patientName"
-            className="field-input"
-            value={form.patientName}
-            onChange={update("patientName")}
-            placeholder="Patient Demo"
-            autoComplete="off"
-          />
-          <p className="field-hint">
-            Interdit : nom d’un vrai patient ou d’un proche identifiable.
-          </p>
-        </div>
+          <div className="space-y-2">
+            <label htmlFor="neededGroup" className="field-label">
+              Groupe demandé <span className="font-normal text-accent">(requis)</span>
+            </label>
+            <BloodGroupSelect
+              id="neededGroup"
+              value={form.bloodGroup}
+              onChange={update("bloodGroup")}
+              required
+            />
+          </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="hospital" className="field-label">
-            Hôpital / établissement{" "}
-            <span className="font-normal text-stone-500">(requis)</span>
-          </label>
-          <select
-            id="hospital"
-            className="field-input"
-            value={form.hospital}
-            onChange={update("hospital")}
-            required
-          >
-            <option value="">Choisir un établissement démo</option>
-            {DEMO_HOSPITALS.map((hospital) => (
-              <option key={hospital} value={hospital}>
-                {hospital}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <button type="submit" className="btn-primary" disabled={!canSubmit}>
-            Envoyer l’alerte (démo)
-          </button>
-          {!canSubmit ? (
+          <div className="space-y-2">
+            <label htmlFor="patientName" className="field-label">
+              Nom du patient (démo){" "}
+              <span className="font-normal text-accent">(requis)</span>
+            </label>
+            <input
+              id="patientName"
+              className="field-input"
+              value={form.patientName}
+              onChange={update("patientName")}
+              placeholder="Patient Demo"
+              autoComplete="off"
+            />
             <p className="field-hint">
-              Renseignez le groupe, un nom démo et un hôpital fictif pour activer
-              l’envoi simulé.
+              Interdit : nom d’un vrai patient ou d’un proche identifiable.
             </p>
-          ) : null}
-          {submitted ? (
-            <p className="text-xs font-medium text-emerald-800">
-              Dernière action : alerte locale uniquement. Formulaire vidé, rien n’est
-              stocké.
-            </p>
-          ) : null}
-        </div>
-      </form>
-    </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="hospital" className="field-label">
+              Hôpital / établissement{" "}
+              <span className="font-normal text-accent">(requis)</span>
+            </label>
+            <select
+              id="hospital"
+              className="field-input"
+              value={form.hospital}
+              onChange={update("hospital")}
+              required
+            >
+              <option value="">Choisir un établissement démo</option>
+              {DEMO_HOSPITALS.map((hospital) => (
+                <option key={hospital} value={hospital}>
+                  {hospital}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <button type="submit" className="btn-primary w-full" disabled={!canSubmit}>
+              Envoyer l’alerte (démo)
+            </button>
+            {!canSubmit ? (
+              <p className="field-hint">
+                Renseignez le groupe, un nom démo et un hôpital fictif pour
+                activer l’envoi simulé.
+              </p>
+            ) : null}
+            {submitted ? (
+              <p className="text-sm font-semibold text-success">
+                Dernière action : alerte locale uniquement. Formulaire vidé, rien
+                n’est stocké.
+              </p>
+            ) : null}
+          </div>
+        </form>
+      </div>
+    </PageFrame>
   );
 }

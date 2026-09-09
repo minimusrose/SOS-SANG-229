@@ -4,26 +4,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: "#FDF4F5",
-          100: "#F8E4E7",
-          200: "#EFC7CD",
-          500: "#B4233A",
-          600: "#8F1C2E",
-          700: "#6F1624",
-          800: "#4C1019",
+        primary: {
+          DEFAULT: "#ef233c",
+          dark: "#c81d32",
         },
-        sand: {
-          50: "#F8F4EF",
-          100: "#F1EAE2",
-          200: "#E4D8CB",
-        },
+        secondary: "#2b2d42",
+        accent: "#8d99ae",
+        light: "#edf2f4",
+        success: "#00b090",
       },
       boxShadow: {
-        card: "0 1px 2px rgb(28 25 23 / 0.06), 0 8px 24px rgb(28 25 23 / 0.06)",
+        card: "0 8px 30px rgb(43 45 66 / 0.08)",
+        soft: "0 4px 20px rgb(43 45 66 / 0.06)",
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "Segoe UI", "sans-serif"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
     },
   },

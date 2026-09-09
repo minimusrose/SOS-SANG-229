@@ -48,14 +48,14 @@ export const DEMO_REQUESTS = [
 export const STATUS_META = {
   ouverte: {
     label: "Ouverte",
-    className: "bg-amber-50 text-amber-900 ring-amber-200",
+    className: "bg-primary/10 text-primary",
   },
   "en matching": {
     label: "En matching",
-    className: "bg-sky-50 text-sky-900 ring-sky-200",
+    className: "bg-light text-accent",
   },
   pourvue: {
     label: "Pourvue",
-    className: "bg-emerald-50 text-emerald-900 ring-emerald-200",
+    className: "bg-success/10 text-success",
   },
 };

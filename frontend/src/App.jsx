@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
+import BrandMark from "./components/BrandMark.jsx";
 import Toast from "./components/Toast.jsx";
 import useToast from "./hooks/useToast.js";
 import Home from "./pages/Home.jsx";
@@ -16,8 +17,8 @@ const links = [
 
 function navClass({ isActive }) {
   return isActive
-    ? "font-semibold text-brand-700"
-    : "text-stone-600 hover:text-stone-900";
+    ? "font-bold text-primary"
+    : "font-medium text-secondary/80 hover:text-primary";
 }
 
 export default function App() {
@@ -25,32 +26,37 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col bg-white">
       <a
         href="#contenu"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-3 focus:py-2"
       >
         Aller au contenu
       </a>
 
-      <header className="sticky top-0 z-30 border-b border-sand-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
-            <p className="truncate text-base font-bold tracking-tight text-brand-700">
-              SOS Sang 229
-            </p>
-            <p className="text-xs text-stone-500">Maquette · Hackathon Cursor Bénin</p>
-          </div>
+      <header className="sticky top-0 z-30 border-b border-light/80 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <NavLink to="/" className="flex min-w-0 items-center gap-2.5" end>
+            <BrandMark />
+            <span className="min-w-0">
+              <span className="block truncate text-base font-extrabold tracking-tight text-secondary">
+                SOS Sang 229
+              </span>
+              <span className="block text-xs font-medium text-accent">
+                Maquette · Hackathon Cursor Bénin
+              </span>
+            </span>
+          </NavLink>
           <button
             type="button"
-            className="rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-semibold text-stone-700 sm:hidden"
+            className="rounded-full border-2 border-primary px-4 py-1.5 text-sm font-semibold text-primary sm:hidden"
             aria-expanded={menuOpen}
             aria-controls="nav-principale"
             onClick={() => setMenuOpen((open) => !open)}
           >
             Menu
           </button>
-          <nav className="hidden flex-wrap justify-end gap-x-4 gap-y-1 text-sm sm:flex">
+          <nav className="hidden flex-wrap justify-end gap-x-6 gap-y-1 text-sm sm:flex">
             {links.map((link) => (
               <NavLink key={link.to} to={link.to} end={link.end} className={navClass}>
                 {link.label}
@@ -61,9 +67,9 @@ export default function App() {
         {menuOpen ? (
           <nav
             id="nav-principale"
-            className="border-t border-sand-200 px-4 py-3 sm:hidden"
+            className="border-t border-light px-4 py-4 sm:hidden"
           >
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-3 text-sm">
               {links.map((link) => (
                 <li key={link.to}>
                   <NavLink
@@ -81,10 +87,7 @@ export default function App() {
         ) : null}
       </header>
 
-      <main
-        id="contenu"
-        className="mx-auto w-full max-w-lg flex-1 px-4 pb-24 pt-6 sm:pb-10"
-      >
+      <main id="contenu" className="flex-1 pb-20 sm:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route
@@ -96,19 +99,26 @@ export default function App() {
         </Routes>
       </main>
 
+      <footer className="hidden border-t border-light bg-secondary sm:block">
+        <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-6 text-sm text-white/80 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <p className="font-semibold text-white">SOS Sang 229</p>
+          <p>Maquette statique · données fictives · Bénin</p>
+        </div>
+      </footer>
+
       <nav
         aria-label="Navigation principale"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-sand-200 bg-white/95 backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-light bg-white/90 backdrop-blur-md sm:hidden"
       >
-        <ul className="mx-auto grid max-w-lg grid-cols-4">
+        <ul className="mx-auto grid max-w-5xl grid-cols-4">
           {links.map((link) => (
             <li key={link.to}>
               <NavLink
                 to={link.to}
                 end={link.end}
                 className={({ isActive }) =>
-                  `flex flex-col items-center px-1 py-2.5 text-[11px] font-semibold ${
-                    isActive ? "text-brand-700" : "text-stone-500"
+                  `flex flex-col items-center px-1 py-2.5 text-[11px] font-bold ${
+                    isActive ? "text-primary" : "text-accent"
                   }`
                 }
               >

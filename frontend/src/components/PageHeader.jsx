@@ -1,18 +1,22 @@
-export default function PageHeader({ kicker, title, children }) {
+export default function PageHeader({ kicker, title, highlight, children }) {
   return (
-    <header className="space-y-2">
+    <header className="space-y-3">
       {kicker ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-600">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
           {kicker}
         </p>
       ) : null}
-      <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
+      <h1 className="text-3xl font-extrabold tracking-tight text-secondary sm:text-4xl">
         {title}
+        {highlight ? (
+          <>
+            {" "}
+            <span className="text-primary">{highlight}</span>
+          </>
+        ) : null}
       </h1>
       {children ? (
-        <div className="max-w-prose text-sm leading-6 text-stone-600 sm:text-base">
-          {children}
-        </div>
+        <div className="max-w-2xl text-base leading-7 text-accent">{children}</div>
       ) : null}
     </header>
   );
