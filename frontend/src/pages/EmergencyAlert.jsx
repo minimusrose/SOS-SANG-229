@@ -4,7 +4,7 @@ import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import UrgencyBadge from "../components/UrgencyBadge.jsx";
-import { DEMO_HOSPITALS } from "../data/demo.js";
+import { RECOGNIZED_HOSPITALS } from "../data/demo.js";
 
 const INITIAL = {
   bloodGroup: "",
@@ -16,8 +16,11 @@ export default function EmergencyAlert({ onToast }) {
   const [form, setForm] = useState(INITIAL);
   const [submitted, setSubmitted] = useState(false);
 
+  const hospitalIsRecognized = RECOGNIZED_HOSPITALS.some(
+    (item) => item.is_recognized && item.name === form.hospital,
+  );
   const canSubmit = Boolean(
-    form.bloodGroup && form.patientName.trim() && form.hospital,
+    form.bloodGroup && form.patientName.trim() && hospitalIsRecognized,
   );
 
   function update(field) {
@@ -47,8 +50,9 @@ export default function EmergencyAlert({ onToast }) {
         <UrgencyBadge>Alerte simulée · aucun envoi</UrgencyBadge>
 
         <DemoBanner>
-          Utilisez uniquement un nom de patient démo et un établissement fictif.
-          Exemple : Patient Demo, Hôpital Demo Nord.
+          Patient démo uniquement. L’établissement doit figurer sur la liste
+          officielle de démonstration (structures reconnues). Exemple : Patient
+          Demo, Hôpital Demo Reconnu — Cotonou Nord.
         </DemoBanner>
 
         <form className="card space-y-6" onSubmit={handleSubmit} autoComplete="off">
@@ -89,8 +93,10 @@ export default function EmergencyAlert({ onToast }) {
 
           <div className="space-y-2">
             <label htmlFor="hospital" className="field-label">
-              Hôpital / établissement{" "}
-              <span className="font-normal text-accent">(requis)</span>
+              Hôpital reconnu{" "}
+              <span className="font-normal text-accent">
+                (liste officielle, requis)
+              </span>
             </label>
             <select
               id="hospital"
@@ -99,13 +105,20 @@ export default function EmergencyAlert({ onToast }) {
               onChange={update("hospital")}
               required
             >
-              <option value="">Choisir un établissement démo</option>
-              {DEMO_HOSPITALS.map((hospital) => (
-                <option key={hospital} value={hospital}>
-                  {hospital}
-                </option>
-              ))}
+              <option value="">Choisir un établissement reconnu</option>
+              {RECOGNIZED_HOSPITALS.filter((item) => item.is_recognized).map(
+                (hospital) => (
+                  <option key={hospital.id} value={hospital.name}>
+                    {hospital.name}
+                  </option>
+                ),
+              )}
             </select>
+            <p className="field-hint">
+              Seules les structures reconnues par l’État peuvent être choisies —
+              pour que le don arrive au bon endroit. La saisie libre d’un
+              centre non listé n’est pas autorisée.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -114,8 +127,8 @@ export default function EmergencyAlert({ onToast }) {
             </button>
             {!canSubmit ? (
               <p className="field-hint">
-                Renseignez le groupe, un nom démo et un hôpital fictif pour
-                activer l’envoi simulé.
+                Renseignez le groupe, un nom démo et un hôpital reconnu de la
+                liste pour activer l’envoi simulé.
               </p>
             ) : null}
             {submitted ? (

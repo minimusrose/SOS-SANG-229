@@ -29,7 +29,7 @@ const actions = [
   {
     to: "/alerte",
     title: "Signaler une urgence",
-    body: "Simulez une demande pour un patient et un hôpital de démonstration.",
+    body: "Simulez une demande pour un patient démo et un hôpital reconnu (liste officielle).",
   },
   {
     to: "/donneur/inscription",

@@ -9,10 +9,47 @@ export const DEMO_CITIES = [
   "Ville Demo",
 ];
 
-export const DEMO_HOSPITALS = [
-  "Hôpital Demo Nord",
-  "Clinique Demo Centre",
-  "Centre Demo Transfusion",
+/**
+ * Structures clairement fictives, présentées comme reconnues par l’État.
+ * Plus tard : charger via l’API en filtrant `is_recognized=true`
+ * (ex. GET /hospitals?is_recognized=true). Aucun saisie libre côté alerte.
+ */
+export const RECOGNIZED_HOSPITALS = [
+  {
+    id: "HOSP-DEMO-001",
+    name: "Hôpital Demo Reconnu — Cotonou Nord",
+    is_recognized: true,
+  },
+  {
+    id: "HOSP-DEMO-002",
+    name: "Hôpital Demo Reconnu — Cotonou Sud",
+    is_recognized: true,
+  },
+  {
+    id: "HOSP-DEMO-003",
+    name: "Centre Hospitalier Demo Reconnu — Porto-Novo",
+    is_recognized: true,
+  },
+  {
+    id: "HOSP-DEMO-004",
+    name: "Hôpital de Zone Demo Reconnu — Parakou",
+    is_recognized: true,
+  },
+  {
+    id: "HOSP-DEMO-005",
+    name: "Hôpital Demo Reconnu — Abomey-Calavi",
+    is_recognized: true,
+  },
+  {
+    id: "HOSP-DEMO-006",
+    name: "Hôpital Demo Reconnu — Bohicon",
+    is_recognized: true,
+  },
+  {
+    id: "HOSP-DEMO-007",
+    name: "Centre Demo Transfusion Reconnu — Natitingou",
+    is_recognized: true,
+  },
 ];
 
 export const DEMO_REQUESTS = [
@@ -21,7 +58,7 @@ export const DEMO_REQUESTS = [
     status: "ouverte",
     group: "O+",
     zone: "Zone Demo A",
-    hospital: "Hôpital Demo Nord",
+    hospital: "Hôpital Demo Reconnu — Cotonou Nord",
     patient: "Patient Demo A",
     updated: "Il y a 8 min",
   },
@@ -30,7 +67,7 @@ export const DEMO_REQUESTS = [
     status: "en matching",
     group: "A+",
     zone: "Zone Demo B",
-    hospital: "Clinique Demo Centre",
+    hospital: "Centre Hospitalier Demo Reconnu — Porto-Novo",
     patient: "Patient Demo B",
     updated: "Il y a 22 min",
   },
@@ -39,7 +76,7 @@ export const DEMO_REQUESTS = [
     status: "pourvue",
     group: "B+",
     zone: "Zone Demo C",
-    hospital: "Centre Demo Transfusion",
+    hospital: "Hôpital de Zone Demo Reconnu — Parakou",
     patient: "Patient Demo C",
     updated: "Il y a 1 h",
   },
