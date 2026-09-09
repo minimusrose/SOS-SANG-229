@@ -1,1 +1,15 @@
-"""ORM models (PostgreSQL + PostGIS) — not defined in this scaffold."""
+"""ORM models for the MVP schema (PostgreSQL + PostGIS)."""
+
+from app.models.base import Base
+from app.models.donation import DonationConfirmation
+from app.models.donor import Donor
+from app.models.hospital import Hospital
+from app.models.urgency import UrgencyRequest
+
+__all__ = [
+    "Base",
+    "DonationConfirmation",
+    "Donor",
+    "Hospital",
+    "UrgencyRequest",
+]
