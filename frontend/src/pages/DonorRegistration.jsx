@@ -91,6 +91,7 @@ export default function DonorRegistration({ onToast }) {
               onChange={update("phone")}
               placeholder="00 00 00 00"
               autoComplete="off"
+              required
             />
             <p className="field-hint">
               Placeholder volontairement neutre. N’entrez pas un numéro béninois réel.

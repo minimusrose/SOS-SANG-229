@@ -2,16 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-primary: #ef233c;
-  --color-primary-dark: #c81d32;
-  --color-secondary: #2b2d42;
-  --color-accent: #8d99ae;
-  --color-light: #edf2f4;
-  --color-success: #00b090;
-  --color-page: #ffffff;
-}
-
 @layer base {
   html {
     @apply antialiased;

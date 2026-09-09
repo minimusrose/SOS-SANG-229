@@ -85,6 +85,7 @@ export default function EmergencyAlert({ onToast }) {
               onChange={update("patientName")}
               placeholder="Patient Demo"
               autoComplete="off"
+              required
             />
             <p className="field-hint">
               Interdit : nom d’un vrai patient ou d’un proche identifiable.
