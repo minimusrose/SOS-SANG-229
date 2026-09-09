@@ -144,9 +144,11 @@ cd backend
 python -m pytest
 ```
 
-Pytest couvre le matching (compatibilité, rayon, repli ville), la règle hôpital
-reconnu, et les endpoints clés avec des données fictives uniquement (SQLite en
-mémoire, sans secrets).
+Pytest couvre le matching (compatibilité, rayon GPS, repli ville), la règle
+hôpital reconnu, la chaîne Alembic, et les endpoints clés avec des données
+fictives uniquement (SQLite en mémoire, sans secrets). Le chemin PostGIS
+(`ST_DWithin`) est exercé en production / Docker ; les tests utilisent le
+repli Python (mêmes règles GPS / ville).
 
 ## Schéma MVP
 

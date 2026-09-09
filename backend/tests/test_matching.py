@@ -1,11 +1,19 @@
 """Matching rules: ABO/Rh compatibility, GPS radius, city fallback."""
 
+from uuid import uuid4
+
+from sqlalchemy.orm import Session
+
 from app.enums import BloodGroup, MatchMethod
+from app.geo import geopoint_to_wkt
 from app.matching import (
     DEFAULT_RADIUS_METERS,
     compatible_donor_groups,
     donor_is_nearby,
+    find_compatible_donors,
 )
+from app.models import Donor, Hospital
+from app.schemas.common import GeoPoint
 
 
 def test_default_radius_is_15_km() -> None:
@@ -72,3 +80,54 @@ def test_no_match_when_no_gps_and_different_city() -> None:
     )
     assert ok is False
     assert method is None
+
+
+def test_find_compatible_donors_gps_and_city_fallback(db_session: Session) -> None:
+    hospital = Hospital(
+        id=uuid4(),
+        name="Hopital Demo",
+        city="Zone Demo",
+        is_recognized=True,
+        location=geopoint_to_wkt(GeoPoint(latitude=6.37, longitude=2.42)),
+    )
+    gps_near = Donor(
+        id=uuid4(),
+        display_name="Donneur Demo GPS",
+        blood_group=BloodGroup.O_NEGATIVE,
+        phone="+22900000021",
+        city="Ville Demo",
+        location=geopoint_to_wkt(GeoPoint(latitude=6.375, longitude=2.42)),
+        is_available=True,
+    )
+    gps_far = Donor(
+        id=uuid4(),
+        display_name="Donneur Demo Hors Rayon",
+        blood_group=BloodGroup.O_NEGATIVE,
+        phone="+22900000022",
+        city="Zone Demo",
+        location=geopoint_to_wkt(GeoPoint(latitude=6.60, longitude=2.42)),
+        is_available=True,
+    )
+    city_only = Donor(
+        id=uuid4(),
+        display_name="Donneur Demo Ville",
+        blood_group=BloodGroup.O_POSITIVE,
+        phone="+22900000023",
+        city="zone demo",
+        location=None,
+        is_available=True,
+    )
+    db_session.add_all([hospital, gps_near, gps_far, city_only])
+    db_session.commit()
+
+    results = find_compatible_donors(
+        db_session,
+        hospital,
+        BloodGroup.O_POSITIVE,
+        radius_meters=DEFAULT_RADIUS_METERS,
+    )
+    by_id = {item.donor.id: item for item in results}
+    assert set(by_id) == {gps_near.id, city_only.id}
+    assert by_id[gps_near.id].method is MatchMethod.GPS
+    assert by_id[city_only.id].method is MatchMethod.CITY
+    assert gps_far.id not in by_id

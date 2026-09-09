@@ -20,8 +20,14 @@ from geoalchemy2.elements import WKTElement  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
 from app.db import get_session_factory  # noqa: E402
-from app.enums import BloodGroup, DonationStatus, UrgencyStatus  # noqa: E402
-from app.models import DonationConfirmation, Donor, Hospital, UrgencyRequest  # noqa: E402
+from app.enums import BloodGroup, DonationStatus, MatchMethod, UrgencyStatus  # noqa: E402
+from app.models import (  # noqa: E402
+    DonationConfirmation,
+    Donor,
+    Hospital,
+    UrgencyMatch,
+    UrgencyRequest,
+)
 from app.rules import require_recognized_hospital  # noqa: E402
 
 # Fictional Zone Demo point (not a residence or real facility). Do not print.
@@ -31,6 +37,7 @@ RECOGNIZED_HOSPITAL_ID = UUID("00000000-0000-4000-8000-000000000010")
 UNRECOGNIZED_HOSPITAL_ID = UUID("00000000-0000-4000-8000-000000000011")
 DONOR_ID = UUID("00000000-0000-4000-8000-000000000001")
 URGENCY_ID = UUID("00000000-0000-4000-8000-000000000020")
+MATCH_ID = UUID("00000000-0000-4000-8000-000000000021")
 CONFIRM_ID = UUID("00000000-0000-4000-8000-000000000030")
 # Backward-compatible alias used by earlier seed revisions.
 HOSPITAL_ID = RECOGNIZED_HOSPITAL_ID
@@ -115,6 +122,14 @@ def main() -> None:
                 zone_label="Zone Demo",
                 alerted_donors_count=1,
                 confirmed_donations_count=1,
+            )
+        )
+        session.add(
+            UrgencyMatch(
+                id=MATCH_ID,
+                urgency_request_id=URGENCY_ID,
+                donor_id=DONOR_ID,
+                match_method=MatchMethod.GPS,
             )
         )
         session.add(

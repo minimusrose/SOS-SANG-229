@@ -14,10 +14,31 @@ from app.db import get_db
 from app.main import app
 from app.models import Base
 
+_POSTGRES_ONLY_DEFAULTS = ("gen_random_uuid()",)
+
 
 @compiles(Geography, "sqlite")
 def _compile_geography_sqlite(type_, compiler, **kw):  # noqa: ARG001
     return "TEXT"
+
+
+def _strip_postgres_only_defaults() -> None:
+    """Drop Postgres-only DDL defaults so SQLite ``create_all`` can run.
+
+    Production still uses ``gen_random_uuid()`` via Alembic. Tests set PKs
+    explicitly (or rely on application ``uuid4()``).
+    """
+    for table in Base.metadata.tables.values():
+        for column in table.columns:
+            default = column.server_default
+            if default is None:
+                continue
+            arg = getattr(default, "arg", None)
+            if arg is not None and str(arg) in _POSTGRES_ONLY_DEFAULTS:
+                column.server_default = None
+
+
+_strip_postgres_only_defaults()
 
 
 @pytest.fixture
@@ -40,6 +61,13 @@ def db_session() -> Session:
     finally:
         session.close()
         engine.dispose()
+
+
+@pytest.fixture
+def api_client() -> TestClient:
+    """HTTP client without a database (health / OpenAPI)."""
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 @pytest.fixture

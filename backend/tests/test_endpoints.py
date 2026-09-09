@@ -62,14 +62,14 @@ def _donor(
     return donor
 
 
-def test_health_ok(client: TestClient) -> None:
-    response = client.get("/health")
+def test_health_ok(api_client: TestClient) -> None:
+    response = api_client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_openapi_lists_business_paths(client: TestClient) -> None:
-    spec = client.get("/openapi.json").json()
+def test_openapi_lists_business_paths(api_client: TestClient) -> None:
+    spec = api_client.get("/openapi.json").json()
     paths = spec["paths"]
     assert "/health" in paths
     assert "/hospitals" in paths
@@ -277,6 +277,60 @@ def test_tracking_and_confirm_donation(
         json={"donor_id": str(donor.id), "urgency_request_id": urgency_id},
     )
     assert duplicate.status_code == 409
+
+
+def test_create_urgency_matches_gps_donor_inside_radius(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    from app.geo import geopoint_to_wkt
+    from app.schemas.common import GeoPoint
+
+    hospital = Hospital(
+        id=uuid4(),
+        name="Hopital Demo",
+        city="Zone Demo",
+        is_recognized=True,
+        location=geopoint_to_wkt(GeoPoint(latitude=6.37, longitude=2.42)),
+    )
+    db_session.add(hospital)
+    nearby = Donor(
+        id=uuid4(),
+        display_name="Donneur Demo Proche",
+        blood_group=BloodGroup.O_NEGATIVE,
+        phone="+22900000011",
+        city="Autre Ville Demo",
+        location=geopoint_to_wkt(GeoPoint(latitude=6.38, longitude=2.42)),
+        is_available=True,
+    )
+    far = Donor(
+        id=uuid4(),
+        display_name="Donneur Demo Loin",
+        blood_group=BloodGroup.O_NEGATIVE,
+        phone="+22900000012",
+        city="Zone Demo",
+        location=geopoint_to_wkt(GeoPoint(latitude=6.60, longitude=2.42)),
+        is_available=True,
+    )
+    db_session.add_all([nearby, far])
+    db_session.commit()
+
+    response = client.post(
+        "/alerts",
+        json={
+            "public_ref": "REQ-DEMO-GPS",
+            "blood_group_needed": "O+",
+            "patient_display_name": "Patient Demo",
+            "hospital_id": str(hospital.id),
+        },
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["alerted_donors_count"] == 1
+    assert body["matching"]["candidates"][0]["donor_id"] == str(nearby.id)
+    assert body["matching"]["candidates"][0]["match_method"] == "gps"
+    assert "phone" not in body["matching"]["candidates"][0]
+    assert "+229" not in response.text
 
 
 def test_require_recognized_hospital_helper() -> None:
