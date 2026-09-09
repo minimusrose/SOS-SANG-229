@@ -5,7 +5,7 @@ from app.routers import alerts, donors, health, tracking
 
 app = FastAPI(
     title="SOS Sang 229 API",
-    description="MVP d’alerte donneur de sang — Hackathon Cursor Bénin. Scaffold uniquement.",
+    description="MVP d’alerte donneur de sang — Hackathon Cursor Bénin. Schéma ORM + stubs HTTP.",
     version="0.1.0",
 )
 

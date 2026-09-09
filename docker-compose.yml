@@ -1,5 +1,5 @@
-# Local Postgres + PostGIS stub for later wiring.
-# The API does not connect to this database yet.
+# Local Postgres + PostGIS for Alembic migrations (backend/).
+# Enable PostGIS via `alembic upgrade head` (CREATE EXTENSION).
 # Do not put production credentials here.
 
 services:

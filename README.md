@@ -9,8 +9,8 @@ En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer 
 | Couche | Choix | Statut |
 | --- | --- | --- |
 | Frontend | React (JavaScript) + Tailwind CSS + Vite | Scaffold (routes placeholder) |
-| Backend | Python FastAPI | Scaffold (`GET /health`) |
-| Base | PostgreSQL + PostGIS | Prévu (stub Docker uniquement) |
+| Backend | Python FastAPI | Scaffold (`GET /health`) + modèles ORM |
+| Base | PostgreSQL + PostGIS | Docker Compose + migrations Alembic |
 | SMS | Twilio | Prévu (variables placeholder) |
 | Auth | JWT | Prévu (variables placeholder) |
 
@@ -55,15 +55,20 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 - Santé : [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 - Docs : [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
-Copier `.env.example` vers `.env` si besoin. Aucune valeur secrète n’est requise pour ce scaffold.
+Copier `.env.example` vers `.env` et y mettre `DATABASE_URL` / `POSTGRES_PASSWORD` locaux (non commités) pour les migrations.
 
-### Postgres + PostGIS (optionnel, plus tard)
+### Postgres + PostGIS et migrations
 
 ```bash
 docker compose up -d
+cd backend
+source .venv/bin/activate
+alembic upgrade head
+# optionnel, données fictives uniquement :
+python scripts/seed_demo.py
 ```
 
-L’API n’utilise pas encore cette base. Définir `POSTGRES_PASSWORD` dans un `.env` local (non commité).
+Détail : [backend/README.md](backend/README.md). Téléphone, GPS et groupe sanguin sont des champs sensibles — ne jamais les logger en clair.
 
 ## Branches et PR
 
