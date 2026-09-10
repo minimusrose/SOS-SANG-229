@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { requestPosition } from "../lib/geolocation.js";
 import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
@@ -19,11 +20,14 @@ const INITIAL = {
   gpsConsent: false,
 };
 
+const GEO_INITIAL = { status: "idle", coords: null, code: null };
+
 export default function DonorRegistration({ onToast }) {
   const { user, register, refreshMe } = useAuth();
   const needsAccount = !user;
 
   const [form, setForm] = useState(INITIAL);
+  const [geo, setGeo] = useState(GEO_INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -42,6 +46,22 @@ export default function DonorRegistration({ onToast }) {
         event.target.type === "checkbox" ? event.target.checked : event.target.value;
       setForm((current) => ({ ...current, [field]: value }));
     };
+  }
+
+  async function handleGpsToggle(event) {
+    const checked = event.target.checked;
+    setForm((current) => ({ ...current, gpsConsent: checked }));
+    if (!checked) {
+      setGeo(GEO_INITIAL);
+      return;
+    }
+    setGeo({ status: "loading", coords: null, code: null });
+    try {
+      const coords = await requestPosition();
+      setGeo({ status: "granted", coords, code: null });
+    } catch (error) {
+      setGeo({ status: "error", coords: null, code: error.code || "unavailable" });
+    }
   }
 
   async function handleSubmit(event) {
@@ -66,10 +86,14 @@ export default function DonorRegistration({ onToast }) {
         blood_group: form.bloodGroup,
         city: form.city,
         is_available: true,
+        ...(geo.status === "granted" && geo.coords
+          ? { location: geo.coords }
+          : {}),
       });
       await refreshMe();
       setResult(created);
       setForm(INITIAL);
+      setGeo(GEO_INITIAL);
     } catch (error) {
       const conflict =
         error instanceof ApiError && error.status === 409
@@ -261,17 +285,21 @@ export default function DonorRegistration({ onToast }) {
                 type="checkbox"
                 className="mt-1 h-4 w-4 rounded border-accent text-primary focus:ring-primary"
                 checked={form.gpsConsent}
-                onChange={update("gpsConsent")}
+                onChange={handleGpsToggle}
               />
               <span>
-                J’autorise l’utilisation d’une position approximative pour
+                J’autorise l’utilisation de ma position approximative pour
                 accélérer le rapprochement lors d’une urgence.
               </span>
             </label>
             <p className="mt-2 text-sm text-muted">
-              {form.gpsConsent
-                ? "La position ne sert qu’au rapprochement géographique et n’est jamais partagée."
-                : "Sans position, le rapprochement se fait à l’échelle de votre ville."}
+              {geo.status === "loading"
+                ? "Récupération de votre position…"
+                : geo.status === "granted"
+                  ? "Position enregistrée. Elle n’est jamais affichée ni partagée."
+                  : geo.status === "error"
+                    ? "Position indisponible — le rapprochement se fera à l’échelle de votre ville."
+                    : "Sans position, le rapprochement se fait à l’échelle de votre ville."}
             </p>
           </fieldset>
 
