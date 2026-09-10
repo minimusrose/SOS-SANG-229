@@ -4,6 +4,7 @@ import { ApiError, api } from "../api/client.js";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import { RevealGroup } from "../components/Reveal.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 import { STATUS_FILTERS, STATUS_META, formatDateTime } from "../lib/status.js";
 
@@ -290,7 +291,7 @@ export default function LiveTracking({ onToast }) {
             </Link>
           </div>
         ) : (
-          <ul className="grid gap-4 md:grid-cols-2">
+          <RevealGroup as="ul" className="grid gap-4 md:grid-cols-2">
             {visibleRows.map((item) => (
               <li key={item.public_ref}>
                 <Link
@@ -341,7 +342,7 @@ export default function LiveTracking({ onToast }) {
                 </Link>
               </li>
             ))}
-          </ul>
+          </RevealGroup>
         )}
       </div>
     </PageFrame>

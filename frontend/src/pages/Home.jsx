@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Reveal, RevealGroup } from "../components/Reveal.jsx";
 import UrgencyBadge from "../components/UrgencyBadge.jsx";
 
 const stats = [
@@ -50,12 +51,14 @@ export default function Home() {
         <div
           className="pointer-events-none absolute -left-24 top-10 h-64 w-64 rounded-full bg-primary/10 blur-3xl"
           aria-hidden="true"
+          data-decorative
         />
         <div
           className="pointer-events-none absolute -right-16 bottom-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
           aria-hidden="true"
+          data-decorative
         />
-        <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+        <RevealGroup className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           <UrgencyBadge>Urgence transfusionnelle · Bénin</UrgencyBadge>
           <h1 className="mt-6 max-w-3xl text-4xl font-extrabold leading-[1.14] tracking-tight text-secondary sm:text-5xl lg:text-6xl">
             Une alerte, des réponses, une{" "}
@@ -82,17 +85,19 @@ export default function Home() {
               </div>
             ))}
           </dl>
-        </div>
+        </RevealGroup>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-strong">
-          Comment ça marchera
-        </p>
-        <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-secondary">
-          Trois gestes, une <span className="text-primary">chaîne</span> claire
-        </h2>
-        <ol className="mt-8 grid gap-4 md:grid-cols-3">
+        <Reveal>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-strong">
+            Comment ça marchera
+          </p>
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-secondary">
+            Trois gestes, une <span className="text-primary">chaîne</span> claire
+          </h2>
+        </Reveal>
+        <RevealGroup as="ol" className="mt-8 grid gap-4 md:grid-cols-3">
           {steps.map((step) => (
             <li key={step.n} className="card">
               <p className="text-sm font-extrabold text-primary-strong">{step.n}</p>
@@ -100,19 +105,21 @@ export default function Home() {
               <p className="mt-2 text-sm leading-6 text-muted">{step.body}</p>
             </li>
           ))}
-        </ol>
+        </RevealGroup>
       </section>
 
       <section className="bg-light/70">
         <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-extrabold tracking-tight text-secondary">
-            Explorer le <span className="text-primary">parcours</span>
-          </h2>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-muted">
-            Quatre écrans branchés à l’API. Données fictives uniquement
-            (Donneur Demo, Patient Demo, Zone Demo).
-          </p>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <Reveal>
+            <h2 className="text-3xl font-extrabold tracking-tight text-secondary">
+              Explorer le <span className="text-primary">parcours</span>
+            </h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-muted">
+              Quatre écrans branchés à l’API. Données fictives uniquement
+              (Donneur Demo, Patient Demo, Zone Demo).
+            </p>
+          </Reveal>
+          <RevealGroup className="mt-8 grid gap-4 md:grid-cols-3">
             {actions.map((action) => (
               <Link
                 key={action.to}
@@ -124,12 +131,12 @@ export default function Home() {
                 <p className="mt-4 text-sm font-bold text-primary-strong">Ouvrir →</p>
               </Link>
             ))}
-          </div>
+          </RevealGroup>
         </div>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="card">
+        <Reveal className="card">
           <h2 className="text-xl font-extrabold text-secondary">Confiance et données</h2>
           <p className="mt-2 text-base leading-7 text-muted">
             Groupe sanguin, téléphone et localisation sont sensibles. Utilisez
@@ -137,11 +144,11 @@ export default function Home() {
             n’expose pas les numéros. Les SMS sont simulés (aucun Twilio). Pas
             de géolocalisation du navigateur.
           </p>
-        </div>
+        </Reveal>
       </section>
 
       <section className="bg-gradient-to-r from-primary to-primary-dark">
-        <div className="mx-auto flex max-w-5xl flex-col items-start gap-6 px-4 py-14 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+        <Reveal className="mx-auto flex max-w-5xl flex-col items-start gap-6 px-4 py-14 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-white/80">
               Prêt à tester
@@ -156,7 +163,7 @@ export default function Home() {
           >
             Lancer une alerte démo
           </Link>
-        </div>
+        </Reveal>
       </section>
     </div>
   );
