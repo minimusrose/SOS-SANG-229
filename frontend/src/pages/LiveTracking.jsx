@@ -4,7 +4,10 @@ import { ApiError, api } from "../api/client.js";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import { RevealGroup } from "../components/Reveal.jsx";
+import { SkeletonCard } from "../components/Skeleton.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
+import SubmitButton from "../components/SubmitButton.jsx";
 import { STATUS_FILTERS, STATUS_META, formatDateTime } from "../lib/status.js";
 
 export default function LiveTracking({ onToast }) {
@@ -120,19 +123,22 @@ export default function LiveTracking({ onToast }) {
               placeholder="REQ-XXXXXXXX"
               autoComplete="off"
             />
-            <button type="submit" className="btn-primary sm:w-auto">
+            <SubmitButton
+              pending={detailState === "loading"}
+              className="sm:w-auto"
+            >
               Ouvrir
-            </button>
+            </SubmitButton>
           </div>
         </form>
 
         {routeRef ? (
           <section className="card space-y-4">
             {detailState === "loading" ? (
-              <p className="text-sm text-accent">Chargement de {routeRef}…</p>
+              <p className="text-sm text-muted">Chargement de {routeRef}…</p>
             ) : null}
             {detailState === "missing" || detailState === "error" ? (
-              <p className="text-sm text-accent">
+              <p className="text-sm text-muted">
                 Impossible d’afficher cette demande. Vérifiez la référence ou
                 l’API.
               </p>
@@ -147,21 +153,21 @@ export default function LiveTracking({ onToast }) {
                 </div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-3 text-sm md:grid-cols-3">
                   <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                       Groupe
                     </dt>
-                    <dd className="mt-0.5 font-bold text-primary">
+                    <dd className="mt-0.5 font-bold text-primary-strong">
                       {detail.blood_group_needed}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                       Patient
                     </dt>
                     <dd className="mt-0.5 text-secondary">{detail.patient_display_name}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                       Établissement
                     </dt>
                     <dd className="mt-0.5 text-secondary">
@@ -169,13 +175,13 @@ export default function LiveTracking({ onToast }) {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                       Zone
                     </dt>
                     <dd className="mt-0.5 text-secondary">{detail.zone_label || "—"}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                       Alertés
                     </dt>
                     <dd className="mt-0.5 font-bold text-secondary">
@@ -183,7 +189,7 @@ export default function LiveTracking({ onToast }) {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                       Confirmés
                     </dt>
                     <dd className="mt-0.5 font-bold text-secondary">
@@ -222,9 +228,9 @@ export default function LiveTracking({ onToast }) {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-accent">Aucun donneur matché pour cette alerte.</p>
+                  <p className="text-sm text-muted">Aucun donneur matché pour cette alerte.</p>
                 )}
-                <p className="text-xs text-accent">
+                <p className="text-xs text-muted">
                   Mise à jour {formatDateTime(detail.updated_at)}
                 </p>
               </>
@@ -241,7 +247,7 @@ export default function LiveTracking({ onToast }) {
                 key={key}
                 type="button"
                 onClick={() => setFilter(key)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition duration-micro ease-soft-out ${
                   active
                     ? "bg-primary text-white"
                     : "bg-light text-secondary hover:bg-primary/10"
@@ -269,20 +275,35 @@ export default function LiveTracking({ onToast }) {
           ) : null}
         </div>
 
-        {listState === "error" ? (
+        {listState === "loading" && rows.length === 0 ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        ) : listState === "error" ? (
           <div className="card text-center">
-            <p className="text-lg font-extrabold text-secondary">API indisponible</p>
-            <p className="mt-2 text-sm leading-6 text-accent">
-              Lancez uvicorn puis actualisez. Aucune ligne démo n’est affichée
-              à la place.
+            <p className="text-lg font-extrabold text-secondary">
+              Service indisponible
             </p>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Réessayez dans un instant. Aucune ligne démo n’est affichée à la
+              place.
+            </p>
+            <button
+              type="button"
+              className="btn-secondary mt-5"
+              onClick={loadList}
+            >
+              Réessayer
+            </button>
           </div>
         ) : visibleRows.length === 0 ? (
           <div className="card text-center">
             <p className="text-lg font-extrabold text-secondary">
               Aucune demande pour ce filtre
             </p>
-            <p className="mt-2 text-sm leading-6 text-accent">
+            <p className="mt-2 text-sm leading-6 text-muted">
               Créez une alerte ou inscrivez un donneur fictif, puis actualisez.
             </p>
             <Link to="/alerte" className="btn-primary mt-5">
@@ -290,12 +311,12 @@ export default function LiveTracking({ onToast }) {
             </Link>
           </div>
         ) : (
-          <ul className="grid gap-4 md:grid-cols-2">
+          <RevealGroup as="ul" className="grid gap-4 md:grid-cols-2">
             {visibleRows.map((item) => (
               <li key={item.public_ref}>
                 <Link
                   to={`/suivi/${encodeURIComponent(item.public_ref)}`}
-                  className="card block space-y-4 transition hover:-translate-y-0.5 hover:shadow-soft"
+                  className="card block space-y-4 transition duration-micro ease-soft-out hover:-translate-y-0.5 hover:shadow-soft"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="font-mono text-sm font-bold text-secondary">
@@ -305,13 +326,13 @@ export default function LiveTracking({ onToast }) {
                   </div>
                   <dl className="grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
                     <div>
-                      <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                      <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                         Établissement
                       </dt>
                       <dd className="mt-0.5 text-secondary">{item.hospital_name}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                      <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                         Zone
                       </dt>
                       <dd className="mt-0.5 text-secondary">
@@ -319,7 +340,7 @@ export default function LiveTracking({ onToast }) {
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                      <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                         Alertés
                       </dt>
                       <dd className="mt-0.5 font-bold text-secondary">
@@ -327,7 +348,7 @@ export default function LiveTracking({ onToast }) {
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                      <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                         Confirmés
                       </dt>
                       <dd className="mt-0.5 font-bold text-secondary">
@@ -335,13 +356,13 @@ export default function LiveTracking({ onToast }) {
                       </dd>
                     </div>
                   </dl>
-                  <p className="text-xs text-accent">
+                  <p className="text-xs text-muted">
                     Créée {formatDateTime(item.created_at)}
                   </p>
                 </Link>
               </li>
             ))}
-          </ul>
+          </RevealGroup>
         )}
       </div>
     </PageFrame>

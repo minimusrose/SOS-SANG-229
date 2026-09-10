@@ -4,6 +4,7 @@ import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import SubmitButton from "../components/SubmitButton.jsx";
 import { DEMO_CITIES } from "../data/demo.js";
 
 const INITIAL = {
@@ -17,6 +18,7 @@ const INITIAL = {
 export default function DonorRegistration({ onToast }) {
   const [form, setForm] = useState(INITIAL);
   const [submitting, setSubmitting] = useState(false);
+  const [justOk, setJustOk] = useState(false);
   const [result, setResult] = useState(null);
 
   const canSubmit = Boolean(
@@ -35,6 +37,7 @@ export default function DonorRegistration({ onToast }) {
     event.preventDefault();
     if (!canSubmit || submitting) return;
 
+    setJustOk(false);
     setSubmitting(true);
     try {
       const created = await api.createDonor({
@@ -46,6 +49,7 @@ export default function DonorRegistration({ onToast }) {
       });
       setResult(created);
       setForm(INITIAL);
+      setJustOk(true);
       onToast(
         `Profil enregistré pour ${created.display_name}. Aucun SMS envoyé.`,
       );
@@ -77,7 +81,7 @@ export default function DonorRegistration({ onToast }) {
           <div className="space-y-2">
             <label htmlFor="displayName" className="field-label">
               Nom d’affichage{" "}
-              <span className="font-normal text-accent">(requis, fictif)</span>
+              <span className="font-normal text-primary-strong">(requis, fictif)</span>
             </label>
             <input
               id="displayName"
@@ -93,7 +97,7 @@ export default function DonorRegistration({ onToast }) {
 
           <div className="space-y-2">
             <label htmlFor="bloodGroup" className="field-label">
-              Groupe sanguin <span className="font-normal text-accent">(requis)</span>
+              Groupe sanguin <span className="font-normal text-primary-strong">(requis)</span>
             </label>
             <BloodGroupSelect
               id="bloodGroup"
@@ -105,7 +109,7 @@ export default function DonorRegistration({ onToast }) {
 
           <div className="space-y-2">
             <label htmlFor="phone" className="field-label">
-              Téléphone <span className="font-normal text-accent">(requis, fictif)</span>
+              Téléphone <span className="font-normal text-primary-strong">(requis, fictif)</span>
             </label>
             <input
               id="phone"
@@ -125,7 +129,7 @@ export default function DonorRegistration({ onToast }) {
 
           <div className="space-y-2">
             <label htmlFor="city" className="field-label">
-              Ville / zone <span className="font-normal text-accent">(requis)</span>
+              Ville / zone <span className="font-normal text-primary-strong">(requis)</span>
             </label>
             <select
               id="city"
@@ -158,7 +162,7 @@ export default function DonorRegistration({ onToast }) {
                 <strong className="font-semibold">Aucun GPS réel n’est demandé ici.</strong>
               </span>
             </label>
-            <p className="mt-2 text-sm text-accent">
+            <p className="mt-2 text-sm text-muted">
               {form.gpsConsent
                 ? "Consentement noté. La géolocalisation du navigateur reste désactivée ; aucune coordonnée n’est envoyée."
                 : "Option désactivée : aucune coordonnée ne sera lue ni envoyée."}
@@ -166,13 +170,14 @@ export default function DonorRegistration({ onToast }) {
           </fieldset>
 
           <div className="space-y-2">
-            <button
-              type="submit"
-              className="btn-primary w-full"
-              disabled={!canSubmit || submitting}
+            <SubmitButton
+              pending={submitting}
+              success={justOk}
+              disabled={!canSubmit}
+              className="w-full"
             >
-              {submitting ? "Enregistrement…" : "Enregistrer le profil"}
-            </button>
+              Enregistrer le profil
+            </SubmitButton>
             {!canSubmit ? (
               <p className="field-hint">
                 Le bouton s’active lorsque le nom, le groupe, le téléphone fictif

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export default function useToast(durationMs = 4200) {
+export default function useToast(durationMs = 3200) {
   const [message, setMessage] = useState("");
   const timerRef = useRef(null);
 

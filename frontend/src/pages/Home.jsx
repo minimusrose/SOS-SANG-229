@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Reveal, RevealGroup } from "../components/Reveal.jsx";
 import UrgencyBadge from "../components/UrgencyBadge.jsx";
 
 const stats = [
@@ -50,18 +51,20 @@ export default function Home() {
         <div
           className="pointer-events-none absolute -left-24 top-10 h-64 w-64 rounded-full bg-primary/10 blur-3xl"
           aria-hidden="true"
+          data-decorative
         />
         <div
           className="pointer-events-none absolute -right-16 bottom-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
           aria-hidden="true"
+          data-decorative
         />
-        <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+        <RevealGroup className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           <UrgencyBadge>Urgence transfusionnelle · Bénin</UrgencyBadge>
-          <h1 className="mt-6 max-w-3xl text-4xl font-extrabold leading-[1.15] tracking-tight text-secondary sm:text-5xl lg:text-6xl">
+          <h1 className="mt-6 max-w-3xl text-4xl font-extrabold leading-[1.14] tracking-tight text-secondary sm:text-5xl lg:text-6xl">
             Une alerte, des réponses, une{" "}
             <span className="text-primary">vie</span> sauvée.
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-accent">
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted">
             SOS Sang 229 rapproche un besoin de sang et des volontaires à
             proximité. En local, le frontend parle à l’API FastAPI. Aucun SMS
             réel n’est envoyé.
@@ -77,71 +80,75 @@ export default function Home() {
           <dl className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {stats.map((stat) => (
               <div key={stat.label} className="card text-center">
-                <dt className="text-sm font-semibold text-accent">{stat.label}</dt>
+                <dt className="text-sm font-semibold text-muted">{stat.label}</dt>
                 <dd className="mt-1 text-3xl font-extrabold text-secondary">{stat.value}</dd>
               </div>
             ))}
           </dl>
-        </div>
+        </RevealGroup>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
-          Comment ça marchera
-        </p>
-        <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-secondary">
-          Trois gestes, une <span className="text-primary">chaîne</span> claire
-        </h2>
-        <ol className="mt-8 grid gap-4 md:grid-cols-3">
+        <Reveal>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-strong">
+            Comment ça marchera
+          </p>
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-secondary">
+            Trois gestes, une <span className="text-primary">chaîne</span> claire
+          </h2>
+        </Reveal>
+        <RevealGroup as="ol" className="mt-8 grid gap-4 md:grid-cols-3">
           {steps.map((step) => (
             <li key={step.n} className="card">
-              <p className="text-sm font-extrabold text-primary">{step.n}</p>
+              <p className="text-sm font-extrabold text-primary-strong">{step.n}</p>
               <h3 className="mt-3 text-lg font-bold text-secondary">{step.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-accent">{step.body}</p>
+              <p className="mt-2 text-sm leading-6 text-muted">{step.body}</p>
             </li>
           ))}
-        </ol>
+        </RevealGroup>
       </section>
 
       <section className="bg-light/70">
         <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-extrabold tracking-tight text-secondary">
-            Explorer le <span className="text-primary">parcours</span>
-          </h2>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-accent">
-            Quatre écrans branchés à l’API. Données fictives uniquement
-            (Donneur Demo, Patient Demo, Zone Demo).
-          </p>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <Reveal>
+            <h2 className="text-3xl font-extrabold tracking-tight text-secondary">
+              Explorer le <span className="text-primary">parcours</span>
+            </h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-muted">
+              Quatre écrans branchés à l’API. Données fictives uniquement
+              (Donneur Demo, Patient Demo, Zone Demo).
+            </p>
+          </Reveal>
+          <RevealGroup className="mt-8 grid gap-4 md:grid-cols-3">
             {actions.map((action) => (
               <Link
                 key={action.to}
                 to={action.to}
-                className="card block transition hover:-translate-y-0.5 hover:shadow-soft"
+                className="card block transition duration-micro ease-soft-out hover:-translate-y-0.5 hover:shadow-soft"
               >
                 <h3 className="text-lg font-bold text-secondary">{action.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-accent">{action.body}</p>
-                <p className="mt-4 text-sm font-bold text-primary">Ouvrir →</p>
+                <p className="mt-2 text-sm leading-6 text-muted">{action.body}</p>
+                <p className="mt-4 text-sm font-bold text-primary-strong">Ouvrir →</p>
               </Link>
             ))}
-          </div>
+          </RevealGroup>
         </div>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="card">
+        <Reveal className="card">
           <h2 className="text-xl font-extrabold text-secondary">Confiance et données</h2>
-          <p className="mt-2 text-base leading-7 text-accent">
+          <p className="mt-2 text-base leading-7 text-muted">
             Groupe sanguin, téléphone et localisation sont sensibles. Utilisez
             uniquement des valeurs fictives (+22900000001, Zone Demo). L’API
             n’expose pas les numéros. Les SMS sont simulés (aucun Twilio). Pas
             de géolocalisation du navigateur.
           </p>
-        </div>
+        </Reveal>
       </section>
 
       <section className="bg-gradient-to-r from-primary to-primary-dark">
-        <div className="mx-auto flex max-w-5xl flex-col items-start gap-6 px-4 py-14 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+        <Reveal className="mx-auto flex max-w-5xl flex-col items-start gap-6 px-4 py-14 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-white/80">
               Prêt à tester
@@ -152,11 +159,11 @@ export default function Home() {
           </div>
           <Link
             to="/alerte"
-            className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-base font-semibold text-primary shadow-soft hover:bg-light"
+            className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-base font-semibold text-primary-strong shadow-soft transition duration-micro ease-soft-out hover:bg-light"
           >
             Lancer une alerte démo
           </Link>
-        </div>
+        </Reveal>
       </section>
     </div>
   );

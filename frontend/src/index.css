@@ -22,22 +22,106 @@
   }
 
   .field-hint {
-    @apply text-sm leading-6 text-accent;
+    @apply text-sm leading-6 text-muted;
   }
 
   .field-input {
-    @apply w-full rounded-2xl border border-light bg-white px-4 py-3.5 text-base text-secondary shadow-soft outline-none transition placeholder:text-accent/80 focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:bg-light disabled:text-accent;
+    @apply w-full rounded-2xl border border-light bg-white px-4 py-3.5 text-base text-secondary shadow-soft outline-none transition duration-micro ease-soft-out placeholder:text-accent/80 focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:bg-light disabled:text-accent;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-base font-semibold text-white shadow-soft transition hover:bg-primary-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-accent disabled:text-white disabled:shadow-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary-dark px-6 py-3 text-base font-semibold text-white shadow-soft transition duration-micro ease-soft-out hover:bg-primary-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-accent disabled:text-white disabled:shadow-none;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-full border-2 border-primary bg-white px-6 py-3 text-base font-semibold text-primary transition hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:border-accent disabled:text-accent disabled:hover:bg-white;
+    @apply inline-flex items-center justify-center gap-2 rounded-full border-2 border-primary bg-white px-6 py-3 text-base font-semibold text-primary-strong transition duration-micro ease-soft-out hover:bg-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:border-accent disabled:text-accent disabled:hover:bg-white;
   }
 
   .card {
     @apply rounded-2xl border border-light bg-white p-6 shadow-card;
+  }
+
+  /* Scroll-reveal: initial (hidden) and revealed (animated) states.
+     Driven by the useReveal hook; never left on an element that the hook
+     cannot flip to revealed. */
+  .reveal-init {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .reveal-in {
+    animation: reveal-rise 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Stagger container: children rise + fade 80ms apart once `data-shown`. */
+  .reveal-group > * {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .reveal-group[data-shown="true"] > * {
+    animation: reveal-rise 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .reveal-group[data-shown="true"] > *:nth-child(2) {
+    animation-delay: 80ms;
+  }
+  .reveal-group[data-shown="true"] > *:nth-child(3) {
+    animation-delay: 160ms;
+  }
+  .reveal-group[data-shown="true"] > *:nth-child(4) {
+    animation-delay: 240ms;
+  }
+  .reveal-group[data-shown="true"] > *:nth-child(5) {
+    animation-delay: 320ms;
+  }
+  .reveal-group[data-shown="true"] > *:nth-child(6) {
+    animation-delay: 400ms;
+  }
+  .reveal-group[data-shown="true"] > *:nth-child(7) {
+    animation-delay: 480ms;
+  }
+  .reveal-group[data-shown="true"] > *:nth-child(n + 8) {
+    animation-delay: 560ms;
+  }
+}
+
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Success check stroke, drawn on completion of a submit. */
+@keyframes draw-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Respect the OS "reduce motion" setting: drop decorative movement and
+   scroll-reveal, but keep functional feedback (spinner, skeleton shimmer,
+   success check) which lives on its own utility classes. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-init,
+  .reveal-in {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+
+  [data-decorative] {
+    animation: none !important;
+  }
+
+  .reveal-group > * {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
   }
 }
