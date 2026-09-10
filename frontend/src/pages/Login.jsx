@@ -4,6 +4,7 @@ import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import SubmitButton from "../components/SubmitButton.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
 
 export default function Login({ onToast }) {
   const { login } = useAuth();
@@ -24,6 +25,10 @@ export default function Login({ onToast }) {
   async function handleSubmit(event) {
     event.preventDefault();
     if (!canSubmit || submitting) return;
+    if (!isValidPhone(form.phone)) {
+      onToast(PHONE_ERROR);
+      return;
+    }
     setSubmitting(true);
     try {
       await login({ phone: form.phone.trim(), password: form.password });

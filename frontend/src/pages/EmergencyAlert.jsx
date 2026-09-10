@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
@@ -71,6 +72,11 @@ export default function EmergencyAlert({ onToast }) {
     event.preventDefault();
     if (!canSubmit || submitting) return;
 
+    if (needsAccount && !isValidPhone(form.phone)) {
+      onToast(PHONE_ERROR);
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (needsAccount) {
@@ -104,8 +110,9 @@ export default function EmergencyAlert({ onToast }) {
     <PageFrame>
       <div className="space-y-8">
         <PageHeader kicker="Urgence" title="Alerte" highlight="don de sang">
-          Signalez un besoin de sang pour un établissement de santé reconnu. Les
-          donneurs compatibles à proximité sont prévenus immédiatement.
+          Signalez un besoin de sang si vous vous trouvez dans un établissement
+          de santé reconnu. Les donneurs compatibles à proximité seront prévenus
+          immédiatement.
         </PageHeader>
 
         {result ? (
@@ -203,7 +210,7 @@ export default function EmergencyAlert({ onToast }) {
 
               <div className="space-y-2">
                 <label htmlFor="patientName" className="field-label">
-                  Patient{" "}
+                  Nom du patient{" "}
                   <span className="font-normal text-primary-strong">(requis)</span>
                 </label>
                 <input
@@ -211,13 +218,13 @@ export default function EmergencyAlert({ onToast }) {
                   className="field-input"
                   value={form.patientName}
                   onChange={update("patientName")}
-                  placeholder="Ex. A. K."
+                  placeholder="Ex. Awa Koffi"
                   autoComplete="off"
                   required
                 />
                 <p className="field-hint">
-                  Utilisez les initiales du patient pour préserver sa
-                  confidentialité.
+                  Nom complet du patient : le donneur doit savoir au nom de qui
+                  le don est fait.
                 </p>
               </div>
 
@@ -262,10 +269,6 @@ export default function EmergencyAlert({ onToast }) {
                     </span>
                   </div>
                 ) : null}
-                <p className="field-hint">
-                  Seuls les établissements reconnus par l’État sont proposés,
-                  pour que le don arrive au bon endroit.
-                </p>
               </div>
 
               <div className="space-y-2">

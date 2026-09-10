@@ -46,7 +46,7 @@ const actions = [
 ];
 
 export default function Home() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   return (
     <div>
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-white to-light">
@@ -72,21 +72,16 @@ export default function Home() {
             prévenus en quelques minutes.
           </p>
           {isAuthenticated ? (
-            <div className="mt-8 space-y-3">
-              <p className="text-base font-semibold text-secondary">
-                Bonjour {user.display_name}.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Link to="/mes-demandes" className="btn-primary w-full sm:w-auto">
-                  Mes demandes
-                </Link>
-                <Link
-                  to="/demandes-en-cours"
-                  className="btn-secondary w-full sm:w-auto"
-                >
-                  Demandes en cours
-                </Link>
-              </div>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link to="/mes-demandes" className="btn-primary w-full sm:w-auto">
+                Mes demandes
+              </Link>
+              <Link
+                to="/demandes-en-cours"
+                className="btn-secondary w-full sm:w-auto"
+              >
+                Demandes en cours
+              </Link>
             </div>
           ) : (
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">

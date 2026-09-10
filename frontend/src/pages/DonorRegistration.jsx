@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
@@ -46,6 +47,11 @@ export default function DonorRegistration({ onToast }) {
   async function handleSubmit(event) {
     event.preventDefault();
     if (!canSubmit || submitting) return;
+
+    if (needsAccount && !isValidPhone(form.phone)) {
+      onToast(PHONE_ERROR);
+      return;
+    }
 
     setSubmitting(true);
     try {

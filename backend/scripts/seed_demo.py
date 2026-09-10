@@ -1,8 +1,9 @@
-"""Insert clearly fictional demo rows.
+"""Seed the demo dataset.
 
-Never logs phone numbers, GPS coordinates, or blood groups.
-Hospitals: one recognized (usable for urgencies) and one not.
-Re-running updates hospital flags and skips existing urgency rows.
+Inserts the State-recognized public hospitals (hopitaux_publics_benin.md) plus
+clearly fictional demo rows (two demo hospitals, a demo donor + requester
+account, one urgency). Never logs phone numbers, GPS, or blood groups.
+Re-running refreshes hospitals/accounts and skips the existing demo urgency.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
@@ -47,6 +48,42 @@ REQUESTER_USER_ID = UUID("00000000-0000-4000-8000-000000000041")
 _DEMO_PASSWORD = "demo1234"  # noqa: S105
 # Backward-compatible alias used by earlier seed revisions.
 HOSPITAL_ID = RECOGNIZED_HOSPITAL_ID
+
+# Public hospitals recognized by the State (hopitaux_publics_benin.md).
+# (name, city) — matched to donors by city when no GPS is set.
+_OFFICIAL_HOSPITALS: tuple[tuple[str, str], ...] = (
+    ("Centre National Hospitalier Universitaire Hubert Koutoukou Maga (CNHU-HKM)", "Cotonou"),
+    ("Centre Hospitalier Départemental de l'Ouémé-Plateau (CHD-OP)", "Porto-Novo"),
+    ("Centre Hospitalier Départemental du Borgou-Alibori (CHD-BA)", "Parakou"),
+    ("Centre Hospitalier Départemental du Zou-Collines (CHD-ZC)", "Abomey"),
+    ("Centre Hospitalier Départemental du Mono-Couffo (CHD-MC)", "Lokossa"),
+    ("Centre Hospitalier Départemental de l'Atacora-Donga (CHD-AD)", "Natitingou"),
+    ("Centre Hospitalier International de Calavi (CHIC)", "Abomey-Calavi"),
+)
+
+
+def _official_hospital_id(name: str) -> UUID:
+    """Stable id derived from the name so re-runs are idempotent."""
+    return uuid5(NAMESPACE_URL, f"sosang:hopital-public:{name}")
+
+
+def _upsert_official_hospital(session, name: str, city: str) -> None:
+    hospital_id = _official_hospital_id(name)
+    hospital = session.get(Hospital, hospital_id)
+    if hospital is None:
+        session.add(
+            Hospital(
+                id=hospital_id,
+                name=name,
+                city=city,
+                location=None,
+                is_recognized=True,
+            )
+        )
+        return
+    hospital.name = name
+    hospital.city = city
+    hospital.is_recognized = True
 
 
 def _upsert_user(session, user_id: UUID, *, phone: str, name: str) -> User:
@@ -103,6 +140,9 @@ def main() -> None:
             is_recognized=False,
         )
         require_recognized_hospital(recognized)
+
+        for hospital_name, hospital_city in _OFFICIAL_HOSPITALS:
+            _upsert_official_hospital(session, hospital_name, hospital_city)
 
         _upsert_user(
             session,
