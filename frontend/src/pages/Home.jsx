@@ -141,9 +141,8 @@ export default function Home() {
               minutes.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-8 text-muted">
-              Quand chaque minute compte, SOS Sang 229 prévient les donneurs
-              compatibles de la ville de l’établissement et suit la demande
-              jusqu’au don.
+              SOS Sang 229 prévient les donneurs compatibles de la ville de
+              l’établissement et vous aide à suivre la demande jusqu’au don.
             </p>
 
             {isAuthenticated ? (
