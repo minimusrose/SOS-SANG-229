@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ApiError, api } from "../api/client.js";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
@@ -9,20 +12,28 @@ import { DEMO_CITIES } from "../data/demo.js";
 
 const INITIAL = {
   displayName: "",
-  bloodGroup: "",
   phone: "",
+  password: "",
+  bloodGroup: "",
   city: "",
   gpsConsent: false,
 };
 
 export default function DonorRegistration({ onToast }) {
+  const { user, register, refreshMe } = useAuth();
+  const needsAccount = !user;
+
   const [form, setForm] = useState(INITIAL);
   const [submitting, setSubmitting] = useState(false);
-  const [justOk, setJustOk] = useState(false);
   const [result, setResult] = useState(null);
 
   const canSubmit = Boolean(
-    form.displayName.trim() && form.bloodGroup && form.phone.trim() && form.city,
+    form.bloodGroup &&
+      form.city &&
+      (!needsAccount ||
+        (form.displayName.trim() &&
+          form.phone.trim() &&
+          form.password.length >= 8)),
   );
 
   function update(field) {
@@ -37,26 +48,32 @@ export default function DonorRegistration({ onToast }) {
     event.preventDefault();
     if (!canSubmit || submitting) return;
 
-    setJustOk(false);
+    if (needsAccount && !isValidPhone(form.phone)) {
+      onToast(PHONE_ERROR);
+      return;
+    }
+
     setSubmitting(true);
     try {
+      if (needsAccount) {
+        await register({
+          phone: form.phone.trim(),
+          password: form.password,
+          display_name: form.displayName.trim(),
+        });
+      }
       const created = await api.createDonor({
-        display_name: form.displayName.trim(),
         blood_group: form.bloodGroup,
-        phone: form.phone.trim(),
         city: form.city,
         is_available: true,
       });
+      await refreshMe();
       setResult(created);
       setForm(INITIAL);
-      setJustOk(true);
-      onToast(
-        `Profil enregistré pour ${created.display_name}. Vous serez prévenu en cas d’urgence compatible.`,
-      );
     } catch (error) {
       const conflict =
         error instanceof ApiError && error.status === 409
-          ? "Ce numéro est déjà associé à un profil."
+          ? "Ce numéro ou ce compte a déjà un profil donneur."
           : error.message;
       onToast(conflict);
     } finally {
@@ -64,10 +81,73 @@ export default function DonorRegistration({ onToast }) {
     }
   }
 
+  if (result) {
+    return (
+      <PageFrame>
+        <div className="card space-y-5 border-primary/20 text-center">
+          <span className="mx-auto flex h-16 w-16 animate-pop items-center justify-center rounded-full bg-success/15 text-success">
+            <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M20 6 9 17l-5-5"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength="1"
+                style={{
+                  strokeDasharray: 1,
+                  strokeDashoffset: 1,
+                  animation:
+                    "draw-check 420ms cubic-bezier(.22,1,.36,1) 120ms forwards",
+                }}
+              />
+            </svg>
+          </span>
+          <h1 className="text-2xl font-extrabold text-secondary">
+            Inscription réussie
+          </h1>
+          <p className="text-sm leading-6 text-muted">
+            Profil enregistré pour {result.display_name} ({result.city}). Vous
+            serez prévenu dès qu’un don compatible sera nécessaire près de chez
+            vous.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link to="/" className="btn-secondary">
+              Retour à l’accueil
+            </Link>
+            <Link to="/mes-demandes" className="btn-primary">
+              Voir mes demandes
+            </Link>
+          </div>
+        </div>
+      </PageFrame>
+    );
+  }
+
+  if (user?.has_donor_profile) {
+    return (
+      <PageFrame>
+        <div className="space-y-6">
+          <PageHeader kicker="Volontaire" title="Vous êtes" highlight="donneur">
+            Votre profil est déjà enregistré.
+          </PageHeader>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link to="/" className="btn-secondary">
+              Retour à l’accueil
+            </Link>
+            <Link to="/demandes-en-cours" className="btn-primary">
+              Voir les demandes compatibles
+            </Link>
+          </div>
+        </div>
+      </PageFrame>
+    );
+  }
+
   return (
     <PageFrame>
       <div className="space-y-8">
-        <PageHeader kicker="Volontaire" title="Inscription" highlight="donneur">
+        <PageHeader kicker="Volontaire" title="Devenir" highlight="donneur">
           Enregistrez votre groupe sanguin et votre zone. Vous serez prévenu
           uniquement lorsqu’un don compatible est nécessaire près de chez vous.
         </PageHeader>
@@ -78,28 +158,70 @@ export default function DonorRegistration({ onToast }) {
         </DemoBanner>
 
         <form className="card space-y-6" onSubmit={handleSubmit} autoComplete="off">
-          <div className="space-y-2">
-            <label htmlFor="displayName" className="field-label">
-              Nom d’affichage{" "}
-              <span className="font-normal text-primary-strong">(requis)</span>
-            </label>
-            <input
-              id="displayName"
-              className="field-input"
-              value={form.displayName}
-              onChange={update("displayName")}
-              placeholder="Ex. Awa K."
-              autoComplete="off"
-              required
-            />
-            <p className="field-hint">
-              Le nom présenté à l’établissement lorsqu’une alerte vous concerne.
-            </p>
-          </div>
+          {needsAccount ? (
+            <>
+              <div className="space-y-2">
+                <label htmlFor="displayName" className="field-label">
+                  Nom d’affichage{" "}
+                  <span className="font-normal text-primary-strong">(requis)</span>
+                </label>
+                <input
+                  id="displayName"
+                  className="field-input"
+                  value={form.displayName}
+                  onChange={update("displayName")}
+                  placeholder="Ex. Awa K."
+                  autoComplete="name"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="phone" className="field-label">
+                  Téléphone{" "}
+                  <span className="font-normal text-primary-strong">(requis)</span>
+                </label>
+                <input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  className="field-input"
+                  value={form.phone}
+                  onChange={update("phone")}
+                  placeholder="+229 XX XX XX XX XX"
+                  autoComplete="username"
+                  required
+                />
+                <p className="field-hint">
+                  Sert d’identifiant de connexion et pour vous prévenir.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="password" className="field-label">
+                  Mot de passe{" "}
+                  <span className="font-normal text-primary-strong">
+                    (8 caractères min.)
+                  </span>
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  className="field-input"
+                  value={form.password}
+                  onChange={update("password")}
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                />
+              </div>
+            </>
+          ) : null}
 
           <div className="space-y-2">
             <label htmlFor="bloodGroup" className="field-label">
-              Groupe sanguin <span className="font-normal text-primary-strong">(requis)</span>
+              Groupe sanguin{" "}
+              <span className="font-normal text-primary-strong">(requis)</span>
             </label>
             <BloodGroupSelect
               id="bloodGroup"
@@ -110,28 +232,9 @@ export default function DonorRegistration({ onToast }) {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="phone" className="field-label">
-              Téléphone <span className="font-normal text-primary-strong">(requis)</span>
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              inputMode="tel"
-              className="field-input"
-              value={form.phone}
-              onChange={update("phone")}
-              placeholder="+229 XX XX XX XX XX"
-              autoComplete="off"
-              required
-            />
-            <p className="field-hint">
-              Au format international. C’est par ce numéro que vous serez prévenu.
-            </p>
-          </div>
-
-          <div className="space-y-2">
             <label htmlFor="city" className="field-label">
-              Ville / zone <span className="font-normal text-primary-strong">(requis)</span>
+              Ville / zone{" "}
+              <span className="font-normal text-primary-strong">(requis)</span>
             </label>
             <select
               id="city"
@@ -150,7 +253,9 @@ export default function DonorRegistration({ onToast }) {
           </div>
 
           <fieldset className="rounded-2xl bg-light px-5 py-4">
-            <legend className="px-1 text-sm font-bold text-secondary">Localisation</legend>
+            <legend className="px-1 text-sm font-bold text-secondary">
+              Localisation
+            </legend>
             <label className="mt-2 flex items-start gap-3 text-sm leading-6 text-secondary">
               <input
                 type="checkbox"
@@ -173,22 +278,14 @@ export default function DonorRegistration({ onToast }) {
           <div className="space-y-2">
             <SubmitButton
               pending={submitting}
-              success={justOk}
               disabled={!canSubmit}
               className="w-full"
             >
-              Enregistrer le profil
+              {needsAccount ? "Créer mon compte donneur" : "Enregistrer le profil"}
             </SubmitButton>
             {!canSubmit ? (
               <p className="field-hint">
-                Renseignez votre nom, votre groupe sanguin, votre téléphone et
-                votre zone pour continuer.
-              </p>
-            ) : null}
-            {result ? (
-              <p className="text-sm font-semibold text-success">
-                Profil enregistré pour {result.display_name} ({result.city}).
-                Vous serez prévenu en cas de besoin compatible.
+                Renseignez les champs requis pour continuer.
               </p>
             ) : null}
           </div>

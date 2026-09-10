@@ -3,7 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.matching import DEFAULT_RADIUS_METERS
-from app.routers import alerts, donations, donors, health, hospitals, tracking
+from app.routers import (
+    alerts,
+    auth,
+    donations,
+    donors,
+    health,
+    hospitals,
+    me,
+    tracking,
+)
 
 app = FastAPI(
     title="SOS Sang 229 API",
@@ -11,14 +20,18 @@ app = FastAPI(
         "MVP d’alerte et de matching donneur de sang — Hackathon Cursor Bénin.\n\n"
         "## Endpoints métier\n"
         "- `GET /health` — santé de l’API (sans base)\n"
+        "- `POST /auth/register` / `POST /auth/login` / `GET /auth/me` — comptes "
+        "(téléphone + mot de passe, JWT bearer)\n"
         "- `GET /hospitals` / `GET /hospitals/recognized` — établissements reconnus "
         "(sans téléphone ni GPS)\n"
-        "- `POST /donors` — inscription donneur (téléphone / GPS omis en réponse)\n"
-        "- `POST /alerts` — créer une urgence (`hospital_id` reconnu obligatoire), "
-        "lancer le matching, simuler un SMS par donneur (`SMS_MODE=simulate`)\n"
-        "- `POST /donations` — confirmer un don\n"
-        "- `GET /requests` et `GET /requests/{public_ref}` — suivi (compteurs / statut, "
-        "sans numéro de téléphone)\n\n"
+        "- `POST /donors` — profil donneur du compte connecté (téléphone du compte)\n"
+        "- `POST /alerts` — créer une urgence (compte connecté), `hospital_id` "
+        "reconnu obligatoire, matching + SMS simulé\n"
+        "- `POST /donations` — confirmer son don (compte connecté, doit être matché)\n"
+        "- `GET /me/requests` — mes demandes ; `GET /me/matches` — demandes où je "
+        "suis compatible\n"
+        "- `GET /requests/{public_ref}` — détail d’une demande (demandeur ou "
+        "donneur matché uniquement)\n\n"
         "## Matching PostGIS\n"
         f"Rayon GPS par défaut : **{DEFAULT_RADIUS_METERS} m (15 km)**, "
         "configurable via `MATCH_RADIUS_METERS`. "
@@ -42,10 +55,12 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(hospitals.router)
 app.include_router(donors.router)
 app.include_router(alerts.router)
 app.include_router(donations.router)
+app.include_router(me.router)
 app.include_router(tracking.router)
 
 
@@ -57,12 +72,16 @@ def root():
         "health": "/health",
         "endpoints": [
             "/health",
+            "/auth/register",
+            "/auth/login",
+            "/auth/me",
             "/hospitals",
             "/hospitals/recognized",
             "/donors",
             "/alerts",
             "/donations",
-            "/requests",
+            "/me/requests",
+            "/me/matches",
             "/requests/{public_ref}",
         ],
     }

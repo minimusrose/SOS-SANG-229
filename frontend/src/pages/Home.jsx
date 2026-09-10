@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext.jsx";
 import { Reveal, RevealGroup } from "../components/Reveal.jsx";
 import UrgencyBadge from "../components/UrgencyBadge.jsx";
 
@@ -38,13 +39,14 @@ const actions = [
     body: "Enregistrez votre groupe sanguin et votre zone pour être prévenu quand un don compatible est nécessaire près de chez vous.",
   },
   {
-    to: "/suivi",
-    title: "Suivre les demandes",
-    body: "Consultez l’avancement d’une demande grâce à sa référence : ouverte, en cours ou pourvue.",
+    to: "/mes-demandes",
+    title: "Suivre mes demandes",
+    body: "Retrouvez vos demandes et les urgences pour lesquelles vous êtes compatible depuis votre compte.",
   },
 ];
 
 export default function Home() {
+  const { isAuthenticated } = useAuth();
   return (
     <div>
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-white to-light">
@@ -69,14 +71,31 @@ export default function Home() {
             les plus proches. Une alerte suffit : les donneurs compatibles sont
             prévenus en quelques minutes.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link to="/alerte" className="btn-primary w-full sm:w-auto">
-              Signaler une urgence
-            </Link>
-            <Link to="/donneur/inscription" className="btn-secondary w-full sm:w-auto">
-              Je veux donner
-            </Link>
-          </div>
+          {isAuthenticated ? (
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link to="/mes-demandes" className="btn-primary w-full sm:w-auto">
+                Mes demandes
+              </Link>
+              <Link
+                to="/demandes-en-cours"
+                className="btn-secondary w-full sm:w-auto"
+              >
+                Demandes en cours
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link to="/alerte" className="btn-primary w-full sm:w-auto">
+                Signaler une urgence
+              </Link>
+              <Link
+                to="/donneur/inscription"
+                className="btn-secondary w-full sm:w-auto"
+              >
+                Devenir donneur
+              </Link>
+            </div>
+          )}
           <dl className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {stats.map((stat) => (
               <div key={stat.label} className="card text-center">

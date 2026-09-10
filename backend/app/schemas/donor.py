@@ -10,15 +10,16 @@ from app.schemas.common import SENSITIVE_NOTE, GeoPoint
 
 
 class DonorCreate(BaseModel):
-    display_name: str = Field(min_length=1, max_length=255, examples=["Donneur Demo"])
-    blood_group: BloodGroup = Field(description=SENSITIVE_NOTE, examples=["O+"])
-    phone: str = Field(
-        min_length=8,
-        max_length=20,
-        description=SENSITIVE_NOTE,
-        examples=["+22900000000"],
+    """Donor profile for the authenticated account. Phone comes from the account."""
+
+    display_name: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Defaults to the account name when omitted.",
+        examples=["Awa K."],
     )
-    city: str = Field(min_length=1, max_length=120, examples=["Zone Demo"])
+    blood_group: BloodGroup = Field(description=SENSITIVE_NOTE, examples=["O+"])
+    city: str = Field(min_length=1, max_length=120, examples=["Cotonou"])
     location: GeoPoint | None = Field(default=None, description=SENSITIVE_NOTE)
     is_available: bool = True
 
@@ -49,3 +50,20 @@ class DonorPublic(BaseModel):
     is_available: bool
     created_at: datetime
     updated_at: datetime
+
+
+class DonorProfileRead(BaseModel):
+    """The account owner's own donor info (self-service "Mes informations")."""
+
+    display_name: str
+    phone: str = Field(description="Login identifier — read-only.")
+    blood_group: BloodGroup = Field(description=SENSITIVE_NOTE)
+    city: str
+
+
+class DonorProfileUpdate(BaseModel):
+    """Editable fields of "Mes informations". All optional (partial update)."""
+
+    display_name: str | None = Field(default=None, min_length=1, max_length=255)
+    blood_group: BloodGroup | None = None
+    city: str | None = Field(default=None, min_length=1, max_length=120)

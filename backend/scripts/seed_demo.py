@@ -1,8 +1,9 @@
-"""Insert clearly fictional demo rows.
+"""Seed the demo dataset.
 
-Never logs phone numbers, GPS coordinates, or blood groups.
-Hospitals: one recognized (usable for urgencies) and one not.
-Re-running updates hospital flags and skips existing urgency rows.
+Inserts the State-recognized public hospitals (hopitaux_publics_benin.md) plus
+clearly fictional demo rows (two demo hospitals, a demo donor + requester
+account, one urgency). Never logs phone numbers, GPS, or blood groups.
+Re-running refreshes hospitals/accounts and skips the existing demo urgency.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
@@ -19,6 +20,7 @@ if str(BACKEND_DIR) not in sys.path:
 from geoalchemy2.elements import WKTElement  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
+from app.auth import hash_password  # noqa: E402
 from app.db import get_session_factory  # noqa: E402
 from app.enums import BloodGroup, DonationStatus, MatchMethod, UrgencyStatus  # noqa: E402
 from app.models import (  # noqa: E402
@@ -27,6 +29,7 @@ from app.models import (  # noqa: E402
     Hospital,
     UrgencyMatch,
     UrgencyRequest,
+    User,
 )
 from app.rules import require_recognized_hospital  # noqa: E402
 
@@ -39,8 +42,61 @@ DONOR_ID = UUID("00000000-0000-4000-8000-000000000001")
 URGENCY_ID = UUID("00000000-0000-4000-8000-000000000020")
 MATCH_ID = UUID("00000000-0000-4000-8000-000000000021")
 CONFIRM_ID = UUID("00000000-0000-4000-8000-000000000030")
+DONOR_USER_ID = UUID("00000000-0000-4000-8000-000000000040")
+REQUESTER_USER_ID = UUID("00000000-0000-4000-8000-000000000041")
+# Clearly fake local demo password. Never a real credential.
+_DEMO_PASSWORD = "demo1234"  # noqa: S105
 # Backward-compatible alias used by earlier seed revisions.
 HOSPITAL_ID = RECOGNIZED_HOSPITAL_ID
+
+# Public hospitals recognized by the State (hopitaux_publics_benin.md).
+# (name, city) — matched to donors by city when no GPS is set.
+_OFFICIAL_HOSPITALS: tuple[tuple[str, str], ...] = (
+    ("Centre National Hospitalier Universitaire Hubert Koutoukou Maga (CNHU-HKM)", "Cotonou"),
+    ("Centre Hospitalier Départemental de l'Ouémé-Plateau (CHD-OP)", "Porto-Novo"),
+    ("Centre Hospitalier Départemental du Borgou-Alibori (CHD-BA)", "Parakou"),
+    ("Centre Hospitalier Départemental du Zou-Collines (CHD-ZC)", "Abomey"),
+    ("Centre Hospitalier Départemental du Mono-Couffo (CHD-MC)", "Lokossa"),
+    ("Centre Hospitalier Départemental de l'Atacora-Donga (CHD-AD)", "Natitingou"),
+    ("Centre Hospitalier International de Calavi (CHIC)", "Abomey-Calavi"),
+)
+
+
+def _official_hospital_id(name: str) -> UUID:
+    """Stable id derived from the name so re-runs are idempotent."""
+    return uuid5(NAMESPACE_URL, f"sosang:hopital-public:{name}")
+
+
+def _upsert_official_hospital(session, name: str, city: str) -> None:
+    hospital_id = _official_hospital_id(name)
+    hospital = session.get(Hospital, hospital_id)
+    if hospital is None:
+        session.add(
+            Hospital(
+                id=hospital_id,
+                name=name,
+                city=city,
+                location=None,
+                is_recognized=True,
+            )
+        )
+        return
+    hospital.name = name
+    hospital.city = city
+    hospital.is_recognized = True
+
+
+def _upsert_user(session, user_id: UUID, *, phone: str, name: str) -> User:
+    user = session.get(User, user_id)
+    if user is None:
+        user = User(
+            id=user_id,
+            phone=phone,
+            display_name=name,
+            password_hash=hash_password(_DEMO_PASSWORD),
+        )
+        session.add(user)
+    return user
 
 
 def _upsert_hospital(
@@ -85,14 +141,34 @@ def main() -> None:
         )
         require_recognized_hospital(recognized)
 
+        for hospital_name, hospital_city in _OFFICIAL_HOSPITALS:
+            _upsert_official_hospital(session, hospital_name, hospital_city)
+
+        _upsert_user(
+            session,
+            DONOR_USER_ID,
+            phone="+22900000000",
+            name="Donneur Demo",
+        )
+        _upsert_user(
+            session,
+            REQUESTER_USER_ID,
+            phone="+22900000098",
+            name="Demandeur Demo",
+        )
+        session.flush()
+
         already = session.scalar(
             select(UrgencyRequest.id).where(UrgencyRequest.public_ref == "REQ-DEMO-001")
         )
         if already is not None:
+            existing_donor = session.get(Donor, DONOR_ID)
+            if existing_donor is not None and existing_donor.user_id is None:
+                existing_donor.user_id = DONOR_USER_ID
             session.commit()
             print(
                 "Demo seed already present (REQ-DEMO-001). "
-                "Hospital recognition flags refreshed. "
+                "Hospital flags + demo accounts refreshed. "
                 "Sensitive fields are not printed."
             )
             return
@@ -101,6 +177,7 @@ def main() -> None:
             session.add(
                 Donor(
                     id=DONOR_ID,
+                    user_id=DONOR_USER_ID,
                     display_name="Donneur Demo",
                     blood_group=BloodGroup.O_POSITIVE,
                     phone="+22900000000",
@@ -117,6 +194,7 @@ def main() -> None:
                 blood_group_needed=BloodGroup.O_POSITIVE,
                 patient_display_name="Patient Demo",
                 hospital_id=RECOGNIZED_HOSPITAL_ID,
+                requester_user_id=REQUESTER_USER_ID,
                 status=UrgencyStatus.ALERTING,
                 units_needed=1,
                 zone_label="Zone Demo",

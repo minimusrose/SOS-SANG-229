@@ -52,7 +52,7 @@ class UrgencyRequestRead(BaseModel):
 
 
 class MatchedDonorPublic(BaseModel):
-    """Candidate shown after matching. No phone, GPS, or blood group."""
+    """Internal shape for a matched donor. Never returned to the requester."""
 
     donor_id: UUID
     display_name: str
@@ -61,11 +61,12 @@ class MatchedDonorPublic(BaseModel):
 
 
 class MatchingSummary(BaseModel):
+    """Aggregate only — the requester sees a count, never donor identities."""
+
     radius_meters: int = Field(
         description="GPS radius in meters. Default 15000 (15 km). City fallback if no GPS.",
     )
     match_count: int
-    candidates: list[MatchedDonorPublic]
 
 
 class NotificationSummary(BaseModel):
@@ -112,6 +113,19 @@ class UrgencySummary(BaseModel):
     created_at: datetime
 
 
+class MyRequestSummary(UrgencySummary):
+    """A request opened by the current account (own data → group is shown)."""
+
+    blood_group_needed: BloodGroup = Field(description=SENSITIVE_NOTE)
+
+
+class MatchedRequestSummary(UrgencySummary):
+    """A request the current account was matched to, as a donor."""
+
+    blood_group_needed: BloodGroup = Field(description=SENSITIVE_NOTE)
+    i_confirmed: bool = False
+
+
 class UrgencyTrackingRead(BaseModel):
     """Requester tracking. Phone and GPS are omitted."""
 
@@ -127,6 +141,5 @@ class UrgencyTrackingRead(BaseModel):
     zone_label: str | None
     alerted_donors_count: int
     confirmed_donations_count: int
-    matched_donors: list[MatchedDonorPublic]
     created_at: datetime
     updated_at: datetime
