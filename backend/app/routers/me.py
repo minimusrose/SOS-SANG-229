@@ -1,6 +1,6 @@
 """Personalised views for the authenticated account: my requests, my matches."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -14,9 +14,66 @@ from app.models import (
     UrgencyRequest,
     User,
 )
+from app.schemas.donor import DonorProfileRead, DonorProfileUpdate
 from app.schemas.urgency import MatchedRequestSummary, MyRequestSummary
 
 router = APIRouter(prefix="/me", tags=["me"])
+
+
+def _require_donor(db: Session, user: User) -> Donor:
+    donor = db.scalars(select(Donor).where(Donor.user_id == user.id)).first()
+    if donor is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="This account has no donor profile.",
+        )
+    return donor
+
+
+def _profile(user: User, donor: Donor) -> DonorProfileRead:
+    return DonorProfileRead(
+        display_name=donor.display_name,
+        phone=user.phone,
+        blood_group=donor.blood_group,
+        city=donor.city,
+    )
+
+
+@router.get(
+    "/donor-profile",
+    response_model=DonorProfileRead,
+    summary="My donor information",
+)
+def get_donor_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DonorProfileRead:
+    return _profile(current_user, _require_donor(db, current_user))
+
+
+@router.patch(
+    "/donor-profile",
+    response_model=DonorProfileRead,
+    summary="Update my donor information",
+)
+def update_donor_profile(
+    payload: DonorProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DonorProfileRead:
+    donor = _require_donor(db, current_user)
+    if payload.display_name is not None:
+        name = payload.display_name.strip()
+        current_user.display_name = name
+        donor.display_name = name
+    if payload.blood_group is not None:
+        donor.blood_group = payload.blood_group
+    if payload.city is not None:
+        donor.city = payload.city.strip()
+    db.commit()
+    db.refresh(donor)
+    db.refresh(current_user)
+    return _profile(current_user, donor)
 
 
 @router.get(

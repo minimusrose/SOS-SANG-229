@@ -50,3 +50,20 @@ class DonorPublic(BaseModel):
     is_available: bool
     created_at: datetime
     updated_at: datetime
+
+
+class DonorProfileRead(BaseModel):
+    """The account owner's own donor info (self-service "Mes informations")."""
+
+    display_name: str
+    phone: str = Field(description="Login identifier — read-only.")
+    blood_group: BloodGroup = Field(description=SENSITIVE_NOTE)
+    city: str
+
+
+class DonorProfileUpdate(BaseModel):
+    """Editable fields of "Mes informations". All optional (partial update)."""
+
+    display_name: str | None = Field(default=None, min_length=1, max_length=255)
+    blood_group: BloodGroup | None = None
+    city: str | None = Field(default=None, min_length=1, max_length=120)

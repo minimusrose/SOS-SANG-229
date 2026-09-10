@@ -118,6 +118,12 @@ export const api = {
     apiRequest("/alerts", { method: "POST", body: JSON.stringify(payload) }),
   myRequests: () => apiRequest("/me/requests"),
   myMatches: () => apiRequest("/me/matches"),
+  getDonorProfile: () => apiRequest("/me/donor-profile"),
+  updateDonorProfile: (payload) =>
+    apiRequest("/me/donor-profile", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   getRequest: (publicRef) =>
     apiRequest(`/requests/${encodeURIComponent(publicRef)}`),
   confirmDonation: (payload) =>

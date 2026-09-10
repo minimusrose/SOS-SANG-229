@@ -415,6 +415,43 @@ def test_me_matches_empty_without_donor_profile(
     assert resp.json() == []
 
 
+def test_donor_profile_read_and_update(client: TestClient, account: dict) -> None:
+    assert client.get(
+        "/me/donor-profile", headers=account["headers"]
+    ).status_code == 404  # no donor profile yet
+
+    client.post(
+        "/donors",
+        json={"display_name": "Awa K.", "blood_group": "O+", "city": "Cotonou"},
+        headers=account["headers"],
+    )
+
+    read = client.get("/me/donor-profile", headers=account["headers"])
+    assert read.status_code == 200
+    assert read.json() == {
+        "display_name": "Awa K.",
+        "phone": account["phone"],
+        "blood_group": "O+",
+        "city": "Cotonou",
+    }
+
+    upd = client.patch(
+        "/me/donor-profile",
+        json={"display_name": "Awa Koffi", "blood_group": "A+", "city": "Parakou"},
+        headers=account["headers"],
+    )
+    assert upd.status_code == 200
+    assert upd.json()["display_name"] == "Awa Koffi"
+    assert upd.json()["blood_group"] == "A+"
+    assert upd.json()["city"] == "Parakou"
+
+    # the account name is kept in sync for /auth/me
+    assert (
+        client.get("/auth/me", headers=account["headers"]).json()["display_name"]
+        == "Awa Koffi"
+    )
+
+
 def test_full_flow_match_confirm_increments_requester_count(
     client: TestClient,
     db_session: Session,

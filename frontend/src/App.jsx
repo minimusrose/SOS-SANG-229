@@ -11,6 +11,7 @@ import EmergencyAlert from "./pages/EmergencyAlert.jsx";
 import Login from "./pages/Login.jsx";
 import MyRequests from "./pages/MyRequests.jsx";
 import CompatibleRequests from "./pages/CompatibleRequests.jsx";
+import MyInfo from "./pages/MyInfo.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 function navClass({ isActive }) {
@@ -53,9 +54,9 @@ export default function App() {
 
   const accountActions = [
     { to: "/alerte", label: "Signaler une urgence" },
-    ...(user && !user.has_donor_profile
-      ? [{ to: "/donneur/inscription", label: "Devenir donneur" }]
-      : []),
+    ...(user && user.has_donor_profile
+      ? [{ to: "/mes-informations", label: "Mes informations" }]
+      : [{ to: "/donneur/inscription", label: "Devenir donneur" }]),
   ];
 
   const bottomItems = isAuthenticated ? primaryLinks.length + 1 : primaryLinks.length;
@@ -209,6 +210,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <CompatibleRequests onToast={toast.show} />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/mes-informations"
+            element={
+              <RequireAuth>
+                <MyInfo onToast={toast.show} />
               </RequireAuth>
             }
           />
