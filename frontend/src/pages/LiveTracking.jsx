@@ -101,18 +101,18 @@ export default function LiveTracking({ onToast }) {
     <PageFrame wide>
       <div className="space-y-8">
         <PageHeader kicker="Suivi" title="Demandes" highlight="en cours">
-          Liste chargée depuis l’API. Recherchez une référence publique pour
-          le détail.
+          Suivez l’avancement de chaque demande de sang. Saisissez une référence
+          pour en voir le détail.
         </PageHeader>
 
         <DemoBanner>
-          Aucune donnée réelle de donneur, de patient ou d’établissement. Les
-          listes n’exposent pas les numéros de téléphone.
+          Les listes de suivi n’affichent jamais les coordonnées des donneurs ni
+          les informations personnelles des patients.
         </DemoBanner>
 
         <form className="card space-y-3" onSubmit={handleLookup}>
           <label htmlFor="publicRef" className="field-label">
-            Référence publique
+            Référence de la demande
           </label>
           <div className="flex flex-col gap-3 sm:flex-row">
             <input
@@ -139,8 +139,8 @@ export default function LiveTracking({ onToast }) {
             ) : null}
             {detailState === "missing" || detailState === "error" ? (
               <p className="text-sm text-muted">
-                Impossible d’afficher cette demande. Vérifiez la référence ou
-                l’API.
+                Impossible d’afficher cette demande. Vérifiez la référence
+                saisie.
               </p>
             ) : null}
             {detail ? (
@@ -228,7 +228,9 @@ export default function LiveTracking({ onToast }) {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted">Aucun donneur matché pour cette alerte.</p>
+                  <p className="text-sm text-muted">
+                    Aucun donneur n’a encore répondu à cette alerte.
+                  </p>
                 )}
                 <p className="text-xs text-muted">
                   Mise à jour {formatDateTime(detail.updated_at)}
@@ -287,8 +289,7 @@ export default function LiveTracking({ onToast }) {
               Service indisponible
             </p>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Réessayez dans un instant. Aucune ligne démo n’est affichée à la
-              place.
+              Réessayez dans un instant.
             </p>
             <button
               type="button"
@@ -304,7 +305,7 @@ export default function LiveTracking({ onToast }) {
               Aucune demande pour ce filtre
             </p>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Créez une alerte ou inscrivez un donneur fictif, puis actualisez.
+              Lancez une alerte ou revenez plus tard.
             </p>
             <Link to="/alerte" className="btn-primary mt-5">
               Créer une alerte

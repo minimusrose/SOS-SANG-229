@@ -50,7 +50,7 @@ export default function App() {
                 SOS Sang 229
               </span>
               <span className="block text-xs font-medium text-muted">
-                Démo locale · Hackathon Cursor Bénin
+                Don de sang d’urgence · Bénin
               </span>
             </span>
           </NavLink>
@@ -109,7 +109,7 @@ export default function App() {
       <footer className="hidden border-t border-light bg-secondary sm:block">
         <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-6 text-sm text-white/80 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p className="font-semibold text-white">SOS Sang 229</p>
-          <p>API locale · données fictives · Bénin</p>
+          <p>Don de sang d’urgence · Bénin</p>
         </div>
       </footer>
 

@@ -12,17 +12,17 @@ const steps = [
   {
     n: "01",
     title: "Lancer l’alerte",
-    body: "Un établissement indique le groupe demandé et un hôpital reconnu. Le matching tourne en local, sans SMS réel.",
+    body: "Un établissement de santé signale le groupe sanguin recherché et le lieu du don. L’alerte part aussitôt.",
   },
   {
     n: "02",
-    title: "Trouver des réponses",
-    body: "Après le matching, un SMS est simulé pour chaque donneur compatible. Aucun envoi réel.",
+    title: "Prévenir les donneurs",
+    body: "Les donneurs compatibles à proximité reçoivent un message et peuvent répondre en un geste.",
   },
   {
     n: "03",
     title: "Suivre jusqu’au don",
-    body: "Chaque demande fictive a un statut visible, pour rassurer l’équipe soignante et le proche.",
+    body: "Chaque demande affiche son avancement en temps réel : ouverte, en cours, pourvue. L’équipe soignante et les proches restent informés.",
   },
 ];
 
@@ -30,17 +30,17 @@ const actions = [
   {
     to: "/alerte",
     title: "Signaler une urgence",
-    body: "Simulez une demande pour un patient démo et un hôpital reconnu (liste officielle).",
+    body: "Lancez une alerte pour un patient auprès d’un établissement de santé reconnu.",
   },
   {
     to: "/donneur/inscription",
     title: "Devenir donneur",
-    body: "Profil fictif : groupe, téléphone démo, ville et consentement GPS.",
+    body: "Enregistrez votre groupe sanguin et votre zone pour être prévenu quand un don compatible est nécessaire près de chez vous.",
   },
   {
     to: "/suivi",
     title: "Suivre les demandes",
-    body: "Liste et détail par référence publique : ouverte, en matching ou pourvue.",
+    body: "Consultez l’avancement d’une demande grâce à sa référence : ouverte, en cours ou pourvue.",
   },
 ];
 
@@ -65,9 +65,9 @@ export default function Home() {
             <span className="text-primary">vie</span> sauvée.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted">
-            SOS Sang 229 rapproche un besoin de sang et des volontaires à
-            proximité. En local, le frontend parle à l’API FastAPI. Aucun SMS
-            réel n’est envoyé.
+            SOS Sang 229 relie un besoin urgent de sang aux donneurs volontaires
+            les plus proches. Une alerte suffit : les donneurs compatibles sont
+            prévenus en quelques minutes.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link to="/alerte" className="btn-primary w-full sm:w-auto">
@@ -91,7 +91,7 @@ export default function Home() {
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
         <Reveal>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-strong">
-            Comment ça marchera
+            Comment ça marche
           </p>
           <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-secondary">
             Trois gestes, une <span className="text-primary">chaîne</span> claire
@@ -115,8 +115,8 @@ export default function Home() {
               Explorer le <span className="text-primary">parcours</span>
             </h2>
             <p className="mt-3 max-w-2xl text-base leading-7 text-muted">
-              Quatre écrans branchés à l’API. Données fictives uniquement
-              (Donneur Demo, Patient Demo, Zone Demo).
+              Trois parcours pour agir vite : lancer une alerte, devenir donneur,
+              suivre une demande.
             </p>
           </Reveal>
           <RevealGroup className="mt-8 grid gap-4 md:grid-cols-3">
@@ -137,12 +137,15 @@ export default function Home() {
 
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
         <Reveal className="card">
-          <h2 className="text-xl font-extrabold text-secondary">Confiance et données</h2>
+          <h2 className="text-xl font-extrabold text-secondary">
+            Vos données restent protégées
+          </h2>
           <p className="mt-2 text-base leading-7 text-muted">
-            Groupe sanguin, téléphone et localisation sont sensibles. Utilisez
-            uniquement des valeurs fictives (+22900000001, Zone Demo). L’API
-            n’expose pas les numéros. Les SMS sont simulés (aucun Twilio). Pas
-            de géolocalisation du navigateur.
+            Votre groupe sanguin, votre téléphone et votre zone servent
+            uniquement à vous mettre en relation avec un établissement lors d’une
+            urgence. Votre numéro n’est jamais affiché publiquement ni
+            communiqué à d’autres donneurs, et aucune position précise n’est
+            collectée.
           </p>
         </Reveal>
       </section>
@@ -151,7 +154,7 @@ export default function Home() {
         <Reveal className="mx-auto flex max-w-5xl flex-col items-start gap-6 px-4 py-14 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-white/80">
-              Prêt à tester
+              Prêt à agir
             </p>
             <p className="mt-2 text-2xl font-extrabold text-white sm:text-3xl">
               Une alerte, des réponses, une vie sauvée.
@@ -161,7 +164,7 @@ export default function Home() {
             to="/alerte"
             className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-base font-semibold text-primary-strong shadow-soft transition duration-micro ease-soft-out hover:bg-light"
           >
-            Lancer une alerte démo
+            Lancer une alerte
           </Link>
         </Reveal>
       </section>

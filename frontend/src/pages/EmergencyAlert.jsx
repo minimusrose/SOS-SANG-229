@@ -73,9 +73,8 @@ export default function EmergencyAlert({ onToast }) {
       setResult(created);
       setForm(INITIAL);
       const count = created.alerted_donors_count ?? 0;
-      const simulated = created.notification?.simulated_count ?? 0;
       onToast(
-        `Alerte ${created.public_ref} créée. ${count} donneur${count > 1 ? "s" : ""} matché${count > 1 ? "s" : ""}, ${simulated} SMS simulé${simulated > 1 ? "s" : ""} (aucun envoi réel).`,
+        `Alerte ${created.public_ref} envoyée. ${count} donneur${count > 1 ? "s" : ""} prévenu${count > 1 ? "s" : ""}.`,
       );
     } catch (error) {
       onToast(error.message);
@@ -102,7 +101,7 @@ export default function EmergencyAlert({ onToast }) {
             nextCount >= (current.units_needed || 1) ? "fulfilled" : current.status,
         };
       });
-      onToast("Don confirmé. Aucun numéro de téléphone n’est affiché.");
+      onToast("Don confirmé. Merci pour votre réactivité.");
     } catch (error) {
       onToast(error.message);
     } finally {
@@ -114,9 +113,8 @@ export default function EmergencyAlert({ onToast }) {
     <PageFrame>
       <div className="space-y-8">
         <PageHeader kicker="Urgence" title="Alerte" highlight="don de sang">
-          Déclarez un besoin fictif auprès d’un hôpital reconnu. Le matching
-          s’exécute côté API, puis un SMS est simulé pour chaque donneur
-          (aucun envoi réel).
+          Signalez un besoin de sang pour un établissement de santé reconnu. Les
+          donneurs compatibles à proximité sont prévenus immédiatement.
         </PageHeader>
 
         {result ? (
@@ -128,12 +126,12 @@ export default function EmergencyAlert({ onToast }) {
           />
         ) : (
           <>
-            <UrgencyBadge>Matching local · SMS simulé</UrgencyBadge>
+            <UrgencyBadge>Donneurs alertés en temps réel</UrgencyBadge>
 
-            <DemoBanner>
-              Patient démo uniquement. L’établissement doit figurer sur la liste
-              officielle (structures reconnues). Exemple : Patient Demo, hôpital
-              reconnu chargé depuis l’API.
+            <DemoBanner title="Établissements reconnus">
+              Seuls les établissements de santé officiellement reconnus peuvent
+              recevoir une alerte, pour garantir que le don arrive au bon
+              endroit.
             </DemoBanner>
 
             <form
@@ -142,9 +140,8 @@ export default function EmergencyAlert({ onToast }) {
               autoComplete="off"
             >
               <div className="rounded-2xl bg-primary/5 px-5 py-4 text-sm leading-6 text-secondary">
-                Cette action crée une urgence, rapproche les donneurs compatibles
-                (rayon 15 km ou même ville), puis simule un SMS par candidat.
-                Aucun SMS réel n’est envoyé (mode simulate).
+                L’alerte prévient les donneurs compatibles dans un rayon
+                d’environ 15 km, ou à défaut dans la même ville.
               </div>
 
               <div className="space-y-2">
@@ -162,7 +159,7 @@ export default function EmergencyAlert({ onToast }) {
 
               <div className="space-y-2">
                 <label htmlFor="patientName" className="field-label">
-                  Nom du patient (démo){" "}
+                  Patient{" "}
                   <span className="font-normal text-primary-strong">(requis)</span>
                 </label>
                 <input
@@ -170,21 +167,20 @@ export default function EmergencyAlert({ onToast }) {
                   className="field-input"
                   value={form.patientName}
                   onChange={update("patientName")}
-                  placeholder="Patient Demo"
+                  placeholder="Ex. A. K."
                   autoComplete="off"
                   required
                 />
                 <p className="field-hint">
-                  Interdit : nom d’un vrai patient ou d’un proche identifiable.
+                  Utilisez les initiales du patient pour préserver sa
+                  confidentialité.
                 </p>
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="hospital" className="field-label">
-                  Hôpital reconnu{" "}
-                  <span className="font-normal text-primary-strong">
-                    (liste officielle, requis)
-                  </span>
+                  Établissement de santé{" "}
+                  <span className="font-normal text-primary-strong">(requis)</span>
                 </label>
                 {hospitalsState === "loading" ? (
                   <Skeleton className="h-[54px] w-full" />
@@ -197,11 +193,9 @@ export default function EmergencyAlert({ onToast }) {
                     required
                   >
                     <option value="">
-                      {hospitals.length === 0
-                        ? hospitalsState === "error"
-                          ? "Choisir un établissement reconnu"
-                          : "Aucun hôpital reconnu (lancez le seed)"
-                        : "Choisir un établissement reconnu"}
+                      {hospitals.length === 0 && hospitalsState !== "error"
+                        ? "Aucun établissement disponible pour le moment"
+                        : "Choisir un établissement"}
                     </option>
                     {hospitals.map((hospital) => (
                       <option key={hospital.id} value={hospital.id}>
@@ -225,9 +219,8 @@ export default function EmergencyAlert({ onToast }) {
                   </div>
                 ) : null}
                 <p className="field-hint">
-                  Seules les structures reconnues par l’État peuvent être choisies
-                  — pour que le don arrive au bon endroit. La saisie libre d’un
-                  centre non listé n’est pas autorisée.
+                  Seuls les établissements reconnus par l’État sont proposés,
+                  pour que le don arrive au bon endroit.
                 </p>
               </div>
 
@@ -255,8 +248,8 @@ export default function EmergencyAlert({ onToast }) {
                 </SubmitButton>
                 {!canSubmit ? (
                   <p className="field-hint">
-                    Renseignez le groupe, un nom démo et un hôpital reconnu de la
-                    liste pour activer l’envoi.
+                    Renseignez le groupe sanguin, le patient et l’établissement
+                    pour envoyer l’alerte.
                   </p>
                 ) : null}
               </div>
@@ -332,18 +325,10 @@ function AlertConfirmation({ result, confirmingId, onConfirm, onReset }) {
         </div>
         <div>
           <dt className="text-xs font-bold uppercase tracking-wide text-muted">
-            SMS simulés
+            Messages envoyés
           </dt>
           <dd className="mt-0.5 text-2xl font-extrabold text-secondary">
             {result.notification?.simulated_count ?? 0}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-bold uppercase tracking-wide text-muted">
-            Canal
-          </dt>
-          <dd className="mt-0.5 font-mono text-sm text-secondary">
-            {result.notification?.channel ?? "sms_simulate"}
           </dd>
         </div>
         <div className="col-span-2">
@@ -360,11 +345,8 @@ function AlertConfirmation({ result, confirmingId, onConfirm, onReset }) {
         className="reveal-in rounded-2xl bg-primary/5 px-4 py-3 text-sm leading-6 text-secondary"
         style={{ animationDelay: "820ms" }}
       >
-        Couche SMS active en mode{" "}
-        <strong className="font-semibold">
-          {result.notification?.mode ?? "simulate"}
-        </strong>
-        . Aucun appel Twilio, aucun numéro affiché.
+        Les donneurs compatibles ont été prévenus par SMS. Aucun numéro n’est
+        affiché ni partagé.
       </p>
 
       {candidates.length ? (
@@ -380,7 +362,7 @@ function AlertConfirmation({ result, confirmingId, onConfirm, onReset }) {
                 {" · "}
                 {candidate.city}
                 {" · "}
-                {candidate.match_method === "gps" ? "GPS" : "ville"}
+                {candidate.match_method === "gps" ? "à proximité" : "même ville"}
               </span>
               <button
                 type="button"
@@ -400,8 +382,8 @@ function AlertConfirmation({ result, confirmingId, onConfirm, onReset }) {
           className="reveal-in text-sm text-muted"
           style={{ animationDelay: "900ms" }}
         >
-          Aucun donneur compatible pour l’instant. Inscrivez un profil fictif
-          dans la même zone, puis relancez une alerte.
+          Aucun donneur compatible n’est disponible pour le moment. L’alerte
+          reste ouverte : de nouveaux donneurs peuvent encore répondre.
         </p>
       )}
 

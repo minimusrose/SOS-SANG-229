@@ -51,12 +51,12 @@ export default function DonorRegistration({ onToast }) {
       setForm(INITIAL);
       setJustOk(true);
       onToast(
-        `Profil enregistré pour ${created.display_name}. Aucun SMS envoyé.`,
+        `Profil enregistré pour ${created.display_name}. Vous serez prévenu en cas d’urgence compatible.`,
       );
     } catch (error) {
       const conflict =
         error instanceof ApiError && error.status === 409
-          ? "Ce numéro fictif est déjà enregistré. Utilisez-en un autre (ex. +22900000001)."
+          ? "Ce numéro est déjà associé à un profil."
           : error.message;
       onToast(conflict);
     } finally {
@@ -68,31 +68,33 @@ export default function DonorRegistration({ onToast }) {
     <PageFrame>
       <div className="space-y-8">
         <PageHeader kicker="Volontaire" title="Inscription" highlight="donneur">
-          Créez un profil fictif. Le backend enregistre le donneur ; le
-          téléphone n’est jamais renvoyé ni affiché après l’envoi.
+          Enregistrez votre groupe sanguin et votre zone. Vous serez prévenu
+          uniquement lorsqu’un don compatible est nécessaire près de chez vous.
         </PageHeader>
 
         <DemoBanner>
-          Ne saisissez pas de vrai numéro, de vrai nom ni une adresse réelle.
-          Exemple : Donneur Demo, +22900000001, Zone Demo.
+          Votre numéro sert uniquement à vous joindre en cas d’urgence. Il n’est
+          jamais affiché publiquement ni transmis à d’autres donneurs.
         </DemoBanner>
 
         <form className="card space-y-6" onSubmit={handleSubmit} autoComplete="off">
           <div className="space-y-2">
             <label htmlFor="displayName" className="field-label">
               Nom d’affichage{" "}
-              <span className="font-normal text-primary-strong">(requis, fictif)</span>
+              <span className="font-normal text-primary-strong">(requis)</span>
             </label>
             <input
               id="displayName"
               className="field-input"
               value={form.displayName}
               onChange={update("displayName")}
-              placeholder="Donneur Demo"
+              placeholder="Ex. Awa K."
               autoComplete="off"
               required
             />
-            <p className="field-hint">Libellé fictif uniquement (ex. Donneur Demo).</p>
+            <p className="field-hint">
+              Le nom présenté à l’établissement lorsqu’une alerte vous concerne.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -109,7 +111,7 @@ export default function DonorRegistration({ onToast }) {
 
           <div className="space-y-2">
             <label htmlFor="phone" className="field-label">
-              Téléphone <span className="font-normal text-primary-strong">(requis, fictif)</span>
+              Téléphone <span className="font-normal text-primary-strong">(requis)</span>
             </label>
             <input
               id="phone"
@@ -118,12 +120,12 @@ export default function DonorRegistration({ onToast }) {
               className="field-input"
               value={form.phone}
               onChange={update("phone")}
-              placeholder="+22900000001"
+              placeholder="+229 XX XX XX XX XX"
               autoComplete="off"
               required
             />
             <p className="field-hint">
-              Placeholder volontairement neutre. N’entrez pas un numéro béninois réel.
+              Au format international. C’est par ce numéro que vous serez prévenu.
             </p>
           </div>
 
@@ -138,7 +140,7 @@ export default function DonorRegistration({ onToast }) {
               onChange={update("city")}
               required
             >
-              <option value="">Choisir une zone démo</option>
+              <option value="">Choisir votre zone</option>
               {DEMO_CITIES.map((city) => (
                 <option key={city} value={city}>
                   {city}
@@ -157,15 +159,14 @@ export default function DonorRegistration({ onToast }) {
                 onChange={update("gpsConsent")}
               />
               <span>
-                J’accepte, dans une future version, de partager une position
-                approximative pour le matching.{" "}
-                <strong className="font-semibold">Aucun GPS réel n’est demandé ici.</strong>
+                J’autorise l’utilisation d’une position approximative pour
+                accélérer le rapprochement lors d’une urgence.
               </span>
             </label>
             <p className="mt-2 text-sm text-muted">
               {form.gpsConsent
-                ? "Consentement noté. La géolocalisation du navigateur reste désactivée ; aucune coordonnée n’est envoyée."
-                : "Option désactivée : aucune coordonnée ne sera lue ni envoyée."}
+                ? "La position ne sert qu’au rapprochement géographique et n’est jamais partagée."
+                : "Sans position, le rapprochement se fait à l’échelle de votre ville."}
             </p>
           </fieldset>
 
@@ -180,14 +181,14 @@ export default function DonorRegistration({ onToast }) {
             </SubmitButton>
             {!canSubmit ? (
               <p className="field-hint">
-                Le bouton s’active lorsque le nom, le groupe, le téléphone fictif
-                et la ville sont renseignés.
+                Renseignez votre nom, votre groupe sanguin, votre téléphone et
+                votre zone pour continuer.
               </p>
             ) : null}
             {result ? (
               <p className="text-sm font-semibold text-success">
-                Profil créé pour {result.display_name} ({result.city}). Le
-                téléphone n’est pas renvoyé par l’API.
+                Profil enregistré pour {result.display_name} ({result.city}).
+                Vous serez prévenu en cas de besoin compatible.
               </p>
             ) : null}
           </div>
