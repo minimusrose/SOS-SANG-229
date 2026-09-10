@@ -11,7 +11,7 @@ const steps = [
   {
     n: "01",
     title: "Lancer l’alerte",
-    body: "Un établissement indique le groupe demandé et un lieu fictif. Rien n’est envoyé dans cette maquette.",
+    body: "Un établissement indique le groupe demandé et un hôpital reconnu. Le matching tourne en local, sans SMS réel.",
   },
   {
     n: "02",
@@ -39,7 +39,7 @@ const actions = [
   {
     to: "/suivi",
     title: "Suivre les demandes",
-    body: "Liste REQ-DEMO-* : ouverte, en matching ou pourvue.",
+    body: "Liste et détail par référence publique : ouverte, en matching ou pourvue.",
   },
 ];
 
@@ -63,8 +63,8 @@ export default function Home() {
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-accent">
             SOS Sang 229 rapproche un besoin de sang et des volontaires à
-            proximité. Cette version est une maquette statique : rien n’est
-            envoyé, rien n’est enregistré.
+            proximité. En local, le frontend parle à l’API FastAPI. Aucun SMS
+            réel n’est envoyé.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link to="/alerte" className="btn-primary w-full sm:w-auto">
@@ -106,11 +106,11 @@ export default function Home() {
       <section className="bg-light/70">
         <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-extrabold tracking-tight text-secondary">
-            Explorer la <span className="text-primary">maquette</span>
+            Explorer le <span className="text-primary">parcours</span>
           </h2>
           <p className="mt-3 max-w-2xl text-base leading-7 text-accent">
-            Quatre écrans pour valider le parcours produit. Données fictives
-            uniquement (Donneur Demo, Patient Demo, Zone Demo).
+            Quatre écrans branchés à l’API. Données fictives uniquement
+            (Donneur Demo, Patient Demo, Zone Demo).
           </p>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {actions.map((action) => (
@@ -133,8 +133,9 @@ export default function Home() {
           <h2 className="text-xl font-extrabold text-secondary">Confiance et données</h2>
           <p className="mt-2 text-base leading-7 text-accent">
             Groupe sanguin, téléphone et localisation sont sensibles. Utilisez
-            uniquement des valeurs fictives (00 00 00 00, Zone Demo). Aucun
-            backend, SMS ou géolocalisation du navigateur n’est branché.
+            uniquement des valeurs fictives (+22900000001, Zone Demo). L’API
+            n’expose pas les numéros. Aucun SMS réel ni géolocalisation du
+            navigateur.
           </p>
         </div>
       </section>

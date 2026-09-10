@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ApiError, api } from "../api/client.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
@@ -15,9 +16,12 @@ const INITIAL = {
 
 export default function DonorRegistration({ onToast }) {
   const [form, setForm] = useState(INITIAL);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
 
-  const canSubmit = Boolean(form.bloodGroup && form.phone.trim() && form.city);
+  const canSubmit = Boolean(
+    form.displayName.trim() && form.bloodGroup && form.phone.trim() && form.city,
+  );
 
   function update(field) {
     return (event) => {
@@ -27,33 +31,53 @@ export default function DonorRegistration({ onToast }) {
     };
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-    if (!canSubmit) return;
-    setSubmitted(true);
-    onToast(
-      "Profil donneur simulé. Rien n’a été envoyé ni enregistré — maquette locale uniquement.",
-    );
-    setForm(INITIAL);
+    if (!canSubmit || submitting) return;
+
+    setSubmitting(true);
+    try {
+      const created = await api.createDonor({
+        display_name: form.displayName.trim(),
+        blood_group: form.bloodGroup,
+        phone: form.phone.trim(),
+        city: form.city,
+        is_available: true,
+      });
+      setResult(created);
+      setForm(INITIAL);
+      onToast(
+        `Profil enregistré pour ${created.display_name}. Aucun SMS envoyé.`,
+      );
+    } catch (error) {
+      const conflict =
+        error instanceof ApiError && error.status === 409
+          ? "Ce numéro fictif est déjà enregistré. Utilisez-en un autre (ex. +22900000001)."
+          : error.message;
+      onToast(conflict);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <PageFrame>
       <div className="space-y-8">
         <PageHeader kicker="Volontaire" title="Inscription" highlight="donneur">
-          Créez un profil fictif pour tester le parcours. Téléphone et ville
-          restent locaux à cet écran.
+          Créez un profil fictif. Le backend enregistre le donneur ; le
+          téléphone n’est jamais renvoyé ni affiché après l’envoi.
         </PageHeader>
 
         <DemoBanner>
           Ne saisissez pas de vrai numéro, de vrai nom ni une adresse réelle.
-          Exemple : Donneur Demo, 00 00 00 00, Zone Demo.
+          Exemple : Donneur Demo, +22900000001, Zone Demo.
         </DemoBanner>
 
         <form className="card space-y-6" onSubmit={handleSubmit} autoComplete="off">
           <div className="space-y-2">
             <label htmlFor="displayName" className="field-label">
-              Nom d’affichage
+              Nom d’affichage{" "}
+              <span className="font-normal text-accent">(requis, fictif)</span>
             </label>
             <input
               id="displayName"
@@ -62,8 +86,9 @@ export default function DonorRegistration({ onToast }) {
               onChange={update("displayName")}
               placeholder="Donneur Demo"
               autoComplete="off"
+              required
             />
-            <p className="field-hint">Libellé fictif visible dans la maquette uniquement.</p>
+            <p className="field-hint">Libellé fictif uniquement (ex. Donneur Demo).</p>
           </div>
 
           <div className="space-y-2">
@@ -89,7 +114,7 @@ export default function DonorRegistration({ onToast }) {
               className="field-input"
               value={form.phone}
               onChange={update("phone")}
-              placeholder="00 00 00 00"
+              placeholder="+22900000001"
               autoComplete="off"
               required
             />
@@ -135,25 +160,29 @@ export default function DonorRegistration({ onToast }) {
             </label>
             <p className="mt-2 text-sm text-accent">
               {form.gpsConsent
-                ? "Consentement noté pour la maquette. La géolocalisation du navigateur reste désactivée."
-                : "Option désactivée : aucune coordonnée ne sera lue."}
+                ? "Consentement noté. La géolocalisation du navigateur reste désactivée ; aucune coordonnée n’est envoyée."
+                : "Option désactivée : aucune coordonnée ne sera lue ni envoyée."}
             </p>
           </fieldset>
 
           <div className="space-y-2">
-            <button type="submit" className="btn-primary w-full" disabled={!canSubmit}>
-              Enregistrer le profil (démo)
+            <button
+              type="submit"
+              className="btn-primary w-full"
+              disabled={!canSubmit || submitting}
+            >
+              {submitting ? "Enregistrement…" : "Enregistrer le profil"}
             </button>
             {!canSubmit ? (
               <p className="field-hint">
-                Le bouton s’active lorsque le groupe, le téléphone fictif et la
-                ville sont renseignés.
+                Le bouton s’active lorsque le nom, le groupe, le téléphone fictif
+                et la ville sont renseignés.
               </p>
             ) : null}
-            {submitted ? (
+            {result ? (
               <p className="text-sm font-semibold text-success">
-                Dernière action : succès local, formulaire réinitialisé. Aucune
-                donnée conservée.
+                Profil créé pour {result.display_name} ({result.city}). Le
+                téléphone n’est pas renvoyé par l’API.
               </p>
             ) : null}
           </div>

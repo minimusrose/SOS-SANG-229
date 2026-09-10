@@ -13,6 +13,7 @@ router = APIRouter(prefix="/requests", tags=["tracking"])
 
 def _to_summary(row: UrgencyRequest) -> UrgencySummary:
     return UrgencySummary(
+        id=row.id,
         public_ref=row.public_ref,
         status=row.status,
         hospital_name=row.hospital.name,
@@ -41,7 +42,7 @@ def _matched_public(matches: list[UrgencyMatch]) -> list[MatchedDonorPublic]:
     "",
     response_model=list[UrgencySummary],
     summary="List urgency tracking summaries",
-    description="Counts and status only. No phone numbers, GPS, or blood groups.",
+    description="Counts, status, and urgency id. No phone numbers, GPS, or blood groups.",
 )
 def list_requests(db: Session = Depends(get_db)) -> list[UrgencySummary]:
     stmt = (
@@ -58,8 +59,8 @@ def list_requests(db: Session = Depends(get_db)) -> list[UrgencySummary]:
     summary="Get urgency tracking status",
     description=(
         "Requester tracking by `public_ref` (for example REQ-DEMO-001). "
-        "Includes counts, status, hospital label, and matched candidates "
-        "without phone numbers."
+        "Includes urgency id (for donation confirm), counts, status, "
+        "hospital label, and matched candidates without phone numbers."
     ),
 )
 def get_request(public_ref: str, db: Session = Depends(get_db)) -> UrgencyTrackingRead:
@@ -78,6 +79,7 @@ def get_request(public_ref: str, db: Session = Depends(get_db)) -> UrgencyTracki
             detail="Urgency request not found.",
         )
     return UrgencyTrackingRead(
+        id=urgency.id,
         public_ref=urgency.public_ref,
         status=urgency.status,
         blood_group_needed=urgency.blood_group_needed,

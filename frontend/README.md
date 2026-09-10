@@ -1,23 +1,54 @@
 # Frontend — SOS Sang 229
 
-React (JavaScript) + Tailwind CSS, bundlé avec Vite.
+React (JavaScript) + Tailwind CSS, bundlé avec Vite. Les écrans appellent l’API FastAPI en local/dev.
 
-## Lancer
+## Configurer l’API
 
 ```bash
-npm install
-npm run dev
+cp .env.example .env
 ```
+
+`.env` (jamais commité) :
+
+```
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Si la variable est absente, le client utilise le même défaut. CORS côté API : `http://localhost:5173` et `http://127.0.0.1:5173`.
+
+## Lancer avec le backend
+
+1. Postgres + migrations + seed (données fictives) puis :
+
+   ```bash
+   cd backend
+   source .venv/bin/activate
+   uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+   ```
+
+2. Frontend :
+
+   ```bash
+   npm install
+   npm run dev
+   ```
 
 App : [http://localhost:5173](http://localhost:5173)
 
-## Routes (maquette statique)
+Build : `npm run build`.
 
-| Chemin | Écran |
-| --- | --- |
-| `/` | Accueil — intention produit et accès aux 3 parcours |
-| `/donneur/inscription` | Inscription donneur (groupe, téléphone fictif, ville, consentement GPS) |
-| `/alerte` | Alerte urgence (groupe, patient démo, hôpital reconnu — select uniquement) |
-| `/suivi` | Suivi — lignes REQ-DEMO-* et état vide |
+## Routes
 
-Les soumissions affichent un toast local. Aucun appel API, aucun stockage persistant. Ne pas saisir de données personnelles réelles.
+| Chemin | Écran | API |
+| --- | --- | --- |
+| `/` | Accueil | — |
+| `/donneur/inscription` | Inscription donneur | `POST /donors` |
+| `/alerte` | Alerte urgence (select hôpitaux reconnus uniquement) | `GET /hospitals/recognized`, `POST /alerts` |
+| `/suivi` | Liste des demandes | `GET /requests` |
+| `/suivi/:publicRef` | Détail + confirmation de don | `GET /requests/{public_ref}`, `POST /donations` |
+
+Toasts succès / erreur. Aucun SMS réel. Aucune géolocalisation navigateur. Ne pas saisir de données personnelles réelles.
+
+## Plan de test
+
+Voir le plan dans le [README racine](../README.md#plan-de-test-rapide).

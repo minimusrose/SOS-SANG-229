@@ -1,4 +1,4 @@
-import { STATUS_META } from "../data/demo.js";
+import { STATUS_META } from "../lib/status.js";
 
 export default function StatusBadge({ status }) {
   const meta = STATUS_META[status] ?? {
