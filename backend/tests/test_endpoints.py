@@ -433,6 +433,7 @@ def test_donor_profile_read_and_update(client: TestClient, account: dict) -> Non
         "phone": account["phone"],
         "blood_group": "O+",
         "city": "Cotonou",
+        "has_location": False,
     }
 
     upd = client.patch(
@@ -450,6 +451,54 @@ def test_donor_profile_read_and_update(client: TestClient, account: dict) -> Non
         client.get("/auth/me", headers=account["headers"]).json()["display_name"]
         == "Awa Koffi"
     )
+
+
+def test_donor_location_is_captured_but_never_returned(
+    client: TestClient,
+    account: dict,
+) -> None:
+    created = client.post(
+        "/donors",
+        json={
+            "blood_group": "O+",
+            "city": "Cotonou",
+            "location": {"latitude": 6.37, "longitude": 2.42},
+        },
+        headers=account["headers"],
+    )
+    assert created.status_code == 201
+    assert "location" not in created.json()  # DonorPublic omits GPS
+
+    read = client.get("/me/donor-profile", headers=account["headers"])
+    assert read.json()["has_location"] is True
+    assert "location" not in read.json()
+    assert "6.37" not in read.text and "2.42" not in read.text
+
+
+def test_donor_location_added_via_profile_update(
+    client: TestClient,
+    account: dict,
+) -> None:
+    client.post(
+        "/donors",
+        json={"blood_group": "O+", "city": "Cotonou"},
+        headers=account["headers"],
+    )
+    assert (
+        client.get("/me/donor-profile", headers=account["headers"]).json()[
+            "has_location"
+        ]
+        is False
+    )
+
+    upd = client.patch(
+        "/me/donor-profile",
+        json={"location": {"latitude": 9.34, "longitude": 2.63}},
+        headers=account["headers"],
+    )
+    assert upd.status_code == 200
+    assert upd.json()["has_location"] is True
+    assert "9.34" not in upd.text and "2.63" not in upd.text
 
 
 def test_full_flow_match_confirm_increments_requester_count(

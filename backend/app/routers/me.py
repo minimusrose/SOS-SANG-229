@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.auth import get_current_user
 from app.db import get_db
 from app.enums import DonationStatus
+from app.geo import geopoint_to_wkt
 from app.models import (
     DonationConfirmation,
     Donor,
@@ -36,6 +37,7 @@ def _profile(user: User, donor: Donor) -> DonorProfileRead:
         phone=user.phone,
         blood_group=donor.blood_group,
         city=donor.city,
+        has_location=donor.location is not None,
     )
 
 
@@ -70,6 +72,8 @@ def update_donor_profile(
         donor.blood_group = payload.blood_group
     if payload.city is not None:
         donor.city = payload.city.strip()
+    if payload.location is not None:
+        donor.location = geopoint_to_wkt(payload.location)
     db.commit()
     db.refresh(donor)
     db.refresh(current_user)

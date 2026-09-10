@@ -59,6 +59,10 @@ class DonorProfileRead(BaseModel):
     phone: str = Field(description="Login identifier — read-only.")
     blood_group: BloodGroup = Field(description=SENSITIVE_NOTE)
     city: str
+    has_location: bool = Field(
+        default=False,
+        description="Whether an approximate GPS point is on file (coords never returned).",
+    )
 
 
 class DonorProfileUpdate(BaseModel):
@@ -67,3 +71,4 @@ class DonorProfileUpdate(BaseModel):
     display_name: str | None = Field(default=None, min_length=1, max_length=255)
     blood_group: BloodGroup | None = None
     city: str | None = Field(default=None, min_length=1, max_length=120)
+    location: GeoPoint | None = Field(default=None, description=SENSITIVE_NOTE)
