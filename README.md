@@ -17,8 +17,8 @@ En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer 
 ## Structure
 
 ```
-frontend/          # UI Vite + React
-backend/           # API FastAPI
+frontend/          # UI Vite + React (+ vercel.json)
+backend/           # API FastAPI (+ Dockerfile, start.sh, railway.toml)
 docker-compose.yml # Postgres + PostGIS local
 .env.example       # noms de variables uniquement
 ```
@@ -27,7 +27,7 @@ docker-compose.yml # Postgres + PostGIS local
 
 Prérequis : Node.js 18+, Python 3.11+, Docker (pour Postgres + PostGIS).
 
-CORS autorise `http://localhost:5173` et `http://127.0.0.1:5173`. Le frontend appelle l’API via `VITE_API_BASE_URL` (défaut `http://127.0.0.1:8000`).
+CORS autorise toujours `http://localhost:5173` et `http://127.0.0.1:5173`, plus `FRONTEND_ORIGIN` (une URL ou une liste séparée par des virgules, ex. l’URL Vercel). Le frontend appelle l’API via `VITE_API_BASE_URL` (défaut `http://127.0.0.1:8000`).
 
 1. Copier `.env.example` vers `.env` à la racine. Y mettre un mot de passe **local** pour `POSTGRES_PASSWORD` et `DATABASE_URL` (jamais commiter `.env`).
 2. Copier `frontend/.env.example` vers `frontend/.env` (optionnel si le défaut convient) :
@@ -83,7 +83,92 @@ Téléphone, GPS et groupe sanguin sont sensibles — ne jamais les logger en cl
 6. État vide : filtre sans lignes, ou API arrêtée → message d’erreur, pas de stubs `REQ-DEMO-*`.
 7. `cd frontend && npm run build` OK.
 
-Hors scope : achat de numéros Twilio, envoi SMS réel, JWT, déploiement Vercel.
+Hors scope : achat de numéros Twilio, envoi SMS réel, JWT, noms de domaine achetés.
+
+## Déploiement (Railway API + Vercel front)
+
+Aucun secret Railway/Vercel dans git. Un équipier crée les projets, branche GitHub, et renseigne les variables dans les dashboards.
+
+### Prérequis
+
+| Cible | Root Directory | Build | Sortie / start |
+| --- | --- | --- | --- |
+| **Railway — API** | `backend` | Dockerfile (`backend/Dockerfile`, Python 3.12) | `./start.sh` → `alembic upgrade head` puis `uvicorn` sur `$PORT` |
+| **Railway — base** | (service image / template) | **PostGIS obligatoire** | Variable `DATABASE_URL` partagée vers l’API |
+| **Vercel — front** | `frontend` | `npm run build` | `dist/` + `vercel.json` (SPA → `index.html`) |
+
+Ne pas laisser le Root Directory Railway à la racine du monorepo : Railpack/Nixpacks peut choisir le frontend, et le `COPY requirements.txt` du Dockerfile API échouera.
+
+### 1. Railway — base PostGIS
+
+Le matching GPS utilise `ST_DWithin`. La première migration exécute `CREATE EXTENSION IF NOT EXISTS postgis`. **Un Postgres Railway standard, sans PostGIS, cassera le déploiement.**
+
+Options (choisir une) :
+
+1. Template marketplace **PostGIS** (image type `postgis/postgis` ou template Railway PostGIS) — le plus simple.
+2. Image Docker `postgis/postgis:16-3.4` (même famille que `docker-compose.yml`) : New service → Docker Image, volume persistant sur le data dir Postgres, `POSTGRES_PASSWORD` généré par Railway.
+3. Template « PostgreSQL with extensions » avec `postgresql-*-postgis-3` et `PG_DB_EXTENSIONS=postgis`.
+
+Puis, sur le **service API** (pas dans git) :
+
+```
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+```
+
+(adapte le nom du service : `PostGIS`, `Postgres`, etc.)
+
+Railway peut fournir `postgres://…` : l’API le normalise en `postgresql://`. Préférer l’URL **privée** du projet (même Railway project) plutôt que l’URL publique. N’ajoute `?sslmode=require` que si le prestataire l’exige (souvent l’URL publique).
+
+### 2. Railway — API FastAPI
+
+1. New Project → Deploy from GitHub → ce dépôt.
+2. Service settings : **Root Directory = `backend`**. Railway lira `backend/railway.toml` + `backend/Dockerfile`.
+3. Generate domain (URL du type `https://….up.railway.app`).
+4. Variables (valeurs placeholder ici — coller les vraies dans le dashboard uniquement) :
+
+   | Variable | Exemple / note |
+   | --- | --- |
+   | `DATABASE_URL` | référence `${{…DATABASE_URL}}` du service PostGIS |
+   | `FRONTEND_ORIGIN` | `https://your-app.vercel.app` (sans slash final ; virgules pour plusieurs origins) |
+   | `SMS_MODE` | `simulate` (démo jury — pas de Twilio réel) |
+   | `APP_ENV` | `production` |
+   | `MATCH_RADIUS_METERS` | `15000` (optionnel) |
+   | `TWILIO_*` / `JWT_SECRET` | laisser vides |
+
+5. Déployer. Le start script applique les migrations puis lance uvicorn. Santé : `https://….up.railway.app/health` → `{"status":"ok"}`.
+6. Alternative dashboard si `railway.toml` n’est pas pris en compte : Builder = Dockerfile, start = `./start.sh`, healthcheck = `/health`.
+
+`start.sh` échoue si `DATABASE_URL` manque ou si PostGIS est absent — c’est voulu.
+
+### 3. Vercel — frontend Vite
+
+1. New Project → importer le même repo GitHub.
+2. **Root Directory = `frontend`**. Framework Vite, build `npm run build`, output `dist/`. `frontend/vercel.json` réécrit les routes SPA vers `index.html`.
+3. Environment Variables (Production et Preview), **avant** le premier build :
+
+   ```
+   VITE_API_BASE_URL=https://your-api.up.railway.app
+   ```
+
+   Vite **inline** cette variable au build. Un changement exige un redeploy Vercel.
+4. Deploy. Copier l’URL `https://….vercel.app` dans `FRONTEND_ORIGIN` côté Railway, puis redéployer l’API si l’origine n’était pas encore là.
+5. Recette CORS : ouvrir le front Vercel, inscription / alerte — pas d’erreur navigateur `blocked by CORS`. Si besoin, ajouter l’URL Preview dans `FRONTEND_ORIGIN` (liste à virgules).
+
+### 4. Seed démo jury (données fictives uniquement)
+
+Après le premier `alembic upgrade head`, charger le jeu **clairement fictif** (`Donneur Demo`, `Hopital Demo`, `+22900000000`, `Zone Demo`, `REQ-DEMO-*`) :
+
+Sur le service API Railway (one-off / shell, working dir `/app`) :
+
+```bash
+python scripts/seed_demo.py
+```
+
+Ne jamais coller `DATABASE_URL` ni des données réelles dans git, tickets, README ou captures. Le script n’affiche pas téléphone, GPS ni groupe sanguin.
+
+### Ordre conseillé
+
+1. PostGIS Railway → 2. API Railway + `DATABASE_URL` + `SMS_MODE=simulate` → 3. Vercel + `VITE_API_BASE_URL` → 4. `FRONTEND_ORIGIN` = URL Vercel → 5. seed démo → 6. parcours `/` → inscription → alerte → suivi.
 
 ## SMS : simulate vs live
 

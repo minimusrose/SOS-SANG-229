@@ -14,7 +14,9 @@ cp .env.example .env
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-Si la variable est absente, le client utilise le même défaut. CORS côté API : `http://localhost:5173` et `http://127.0.0.1:5173`.
+Si la variable est absente, le client utilise le même défaut. CORS côté API : origines Vite locales plus `FRONTEND_ORIGIN` (URL Vercel, liste à virgules possible).
+
+Déploiement Vercel : Root Directory = `frontend`, build `npm run build`, output `dist/`. Voir [README racine — Déploiement](../README.md#déploiement-railway-api--vercel-front).
 
 ## Lancer avec le backend
 

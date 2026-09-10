@@ -1,0 +1,28 @@
+# Railway Config as Code for the FastAPI API.
+#
+# Recommended: create the GitHub-connected service with
+#   Root Directory = backend
+# so this file and Dockerfile are at the service root.
+#
+# If Root Directory stays the repo root, Nixpacks/Railpack may pick the
+# frontend, and `COPY requirements.txt` in this Dockerfile will fail.
+# In that case set Root Directory = backend in the service settings
+# (dashboard equivalents below still apply if this file is ignored).
+#
+# Dashboard equivalents (no secrets in git):
+#   Builder = Dockerfile
+#   Dockerfile path = Dockerfile
+#   Custom start command = ./start.sh   (alembic upgrade head then uvicorn)
+#   Healthcheck path = /health
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+watchPatterns = ["**"]
+
+[deploy]
+startCommand = "./start.sh"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
