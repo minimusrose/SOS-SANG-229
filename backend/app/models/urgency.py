@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.hospital import Hospital
     from app.models.match import UrgencyMatch
     from app.models.notification import SmsNotification
+    from app.models.user import User
 
 _SENSITIVE = "SENSITIVE — never log in cleartext."
 
@@ -35,6 +36,7 @@ class UrgencyRequest(TimestampMixin, Base):
         Index("ix_urgency_requests_status", "status"),
         Index("ix_urgency_requests_blood_group_needed", "blood_group_needed"),
         Index("ix_urgency_requests_hospital_id", "hospital_id"),
+        Index("ix_urgency_requests_requester_user_id", "requester_user_id"),
         {
             "comment": (
                 "Emergency requests. blood_group_needed and "
@@ -71,6 +73,11 @@ class UrgencyRequest(TimestampMixin, Base):
             "Must reference hospitals.is_recognized = true (enforced in DB + API)."
         ),
     )
+    requester_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Account that opened this request. Nullable for legacy/seed rows.",
+    )
     status: Mapped[UrgencyStatus] = mapped_column(
         Enum(
             UrgencyStatus,
@@ -91,6 +98,7 @@ class UrgencyRequest(TimestampMixin, Base):
     )
 
     hospital: Mapped["Hospital"] = relationship(back_populates="urgency_requests")
+    requester: Mapped["User | None"] = relationship(back_populates="requests")
     donation_confirmations: Mapped[list["DonationConfirmation"]] = relationship(
         back_populates="urgency_request",
     )

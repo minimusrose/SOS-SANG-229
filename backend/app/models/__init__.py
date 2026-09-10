@@ -7,6 +7,7 @@ from app.models.hospital import Hospital
 from app.models.match import UrgencyMatch
 from app.models.notification import SmsNotification
 from app.models.urgency import UrgencyRequest
+from app.models.user import User
 
 __all__ = [
     "Base",
@@ -16,4 +17,5 @@ __all__ = [
     "SmsNotification",
     "UrgencyMatch",
     "UrgencyRequest",
+    "User",
 ]

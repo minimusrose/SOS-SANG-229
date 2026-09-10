@@ -1,14 +1,16 @@
-"""Donor registration. Responses omit phone and GPS."""
+"""Donor registration for the authenticated account. Responses omit phone/GPS."""
 
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.db import get_db
 from app.geo import geopoint_to_wkt
-from app.models import Donor
+from app.models import Donor, User
 from app.schemas.donor import DonorCreate, DonorPublic
 
 router = APIRouter(prefix="/donors", tags=["donors"])
@@ -18,18 +20,29 @@ router = APIRouter(prefix="/donors", tags=["donors"])
     "",
     response_model=DonorPublic,
     status_code=status.HTTP_201_CREATED,
-    summary="Register a donor",
+    summary="Register the current account as a donor",
     description=(
-        "Create a donor profile. Use fictional demo data only. "
-        "The response omits phone and GPS."
+        "Creates the donor profile for the authenticated account (one per "
+        "account). The phone is taken from the account; the response omits "
+        "phone and GPS."
     ),
 )
-def create_donor(payload: DonorCreate, db: Session = Depends(get_db)) -> Donor:
+def create_donor(
+    payload: DonorCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Donor:
+    if db.scalar(select(exists().where(Donor.user_id == current_user.id))):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This account already has a donor profile.",
+        )
     donor = Donor(
         id=uuid4(),
-        display_name=payload.display_name,
+        user_id=current_user.id,
+        display_name=(payload.display_name or current_user.display_name).strip(),
         blood_group=payload.blood_group,
-        phone=payload.phone,
+        phone=current_user.phone,
         city=payload.city,
         location=geopoint_to_wkt(payload.location),
         is_available=payload.is_available,
@@ -41,7 +54,7 @@ def create_donor(payload: DonorCreate, db: Session = Depends(get_db)) -> Donor:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A donor with this phone is already registered.",
+            detail="A donor profile already exists for this account or phone.",
         ) from None
     db.refresh(donor)
     return donor

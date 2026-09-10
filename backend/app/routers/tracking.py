@@ -1,29 +1,15 @@
-"""Requester tracking. Phone numbers and GPS are omitted."""
+"""Single-request tracking detail. Restricted to the requester or a matched donor."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.auth import get_current_user
 from app.db import get_db
-from app.models import UrgencyMatch, UrgencyRequest
-from app.schemas.urgency import MatchedDonorPublic, UrgencySummary, UrgencyTrackingRead
+from app.models import Donor, UrgencyMatch, UrgencyRequest, User
+from app.schemas.urgency import MatchedDonorPublic, UrgencyTrackingRead
 
 router = APIRouter(prefix="/requests", tags=["tracking"])
-
-
-def _to_summary(row: UrgencyRequest) -> UrgencySummary:
-    return UrgencySummary(
-        id=row.id,
-        public_ref=row.public_ref,
-        status=row.status,
-        hospital_name=row.hospital.name,
-        hospital_city=row.hospital.city,
-        units_needed=row.units_needed,
-        zone_label=row.zone_label,
-        alerted_donors_count=row.alerted_donors_count,
-        confirmed_donations_count=row.confirmed_donations_count,
-        created_at=row.created_at,
-    )
 
 
 def _matched_public(matches: list[UrgencyMatch]) -> list[MatchedDonorPublic]:
@@ -39,31 +25,19 @@ def _matched_public(matches: list[UrgencyMatch]) -> list[MatchedDonorPublic]:
 
 
 @router.get(
-    "",
-    response_model=list[UrgencySummary],
-    summary="List urgency tracking summaries",
-    description="Counts, status, and urgency id. No phone numbers, GPS, or blood groups.",
-)
-def list_requests(db: Session = Depends(get_db)) -> list[UrgencySummary]:
-    stmt = (
-        select(UrgencyRequest)
-        .options(selectinload(UrgencyRequest.hospital))
-        .order_by(UrgencyRequest.created_at.desc())
-    )
-    return [_to_summary(row) for row in db.scalars(stmt).all()]
-
-
-@router.get(
     "/{public_ref}",
     response_model=UrgencyTrackingRead,
-    summary="Get urgency tracking status",
+    summary="Get one request's tracking status",
     description=(
-        "Requester tracking by `public_ref` (for example REQ-DEMO-001). "
-        "Includes urgency id (for donation confirm), counts, status, "
-        "hospital label, and matched candidates without phone numbers."
+        "By `public_ref`. Allowed only for the account that opened the request "
+        "or an account matched to it as a donor. No phone numbers or GPS."
     ),
 )
-def get_request(public_ref: str, db: Session = Depends(get_db)) -> UrgencyTrackingRead:
+def get_request(
+    public_ref: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UrgencyTrackingRead:
     stmt = (
         select(UrgencyRequest)
         .options(
@@ -78,6 +52,20 @@ def get_request(public_ref: str, db: Session = Depends(get_db)) -> UrgencyTracki
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Urgency request not found.",
         )
+
+    is_requester = urgency.requester_user_id == current_user.id
+    donor = db.scalars(
+        select(Donor).where(Donor.user_id == current_user.id)
+    ).first()
+    is_matched_donor = donor is not None and any(
+        m.donor_id == donor.id for m in urgency.matches
+    )
+    if not (is_requester or is_matched_donor):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot view this request.",
+        )
+
     return UrgencyTrackingRead(
         id=urgency.id,
         public_ref=urgency.public_ref,

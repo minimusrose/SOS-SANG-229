@@ -9,7 +9,8 @@ from app.enums import DonationStatus
 
 
 class DonationConfirmationCreate(BaseModel):
-    donor_id: UUID
+    """The donor is the authenticated account's donor profile."""
+
     urgency_request_id: UUID
 
 

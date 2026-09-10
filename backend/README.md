@@ -1,7 +1,8 @@
 # Backend — SOS Sang 229
 
-API FastAPI : inscription donneur, hôpitaux reconnus, alerte + matching PostGIS,
-confirmation de don, suivi. Point d’entrée : `app/main.py`.
+API FastAPI : comptes (téléphone + mot de passe, JWT), profil donneur, hôpitaux
+reconnus, alerte + matching PostGIS, confirmation de don, vues personnelles
+(mes demandes / demandes compatibles). Point d’entrée : `app/main.py`.
 
 ## Lancer l’API
 
@@ -93,21 +94,26 @@ Une urgence **doit** cibler `hospitals.is_recognized = true` (`app.rules.require
 
 ## Endpoints
 
-| Méthode | Chemin | Rôle |
-| --- | --- | --- |
-| `GET` | `/health` | Santé |
-| `GET` | `/hospitals` | Hôpitaux (`is_recognized=true` par défaut) |
-| `GET` | `/hospitals/recognized` | Alias du select reconnu |
-| `POST` | `/donors` | Inscription donneur |
-| `POST` | `/alerts` | Créer une urgence + matching |
-| `POST` | `/donations` | Confirmer un don |
-| `GET` | `/requests` | Liste de suivi (compteurs + `id`) |
-| `GET` | `/requests/{public_ref}` | Suivi d’une urgence (`id` pour `POST /donations`) |
+| Méthode | Chemin | Rôle | Auth |
+| --- | --- | --- | --- |
+| `GET` | `/health` | Santé | — |
+| `POST` | `/auth/register` | Créer un compte (téléphone + mot de passe) → `{ token, user }` | — |
+| `POST` | `/auth/login` | Se connecter → `{ token, user }` | — |
+| `GET` | `/auth/me` | Compte courant | Bearer |
+| `GET` | `/hospitals` / `/hospitals/recognized` | Hôpitaux reconnus | — |
+| `POST` | `/donors` | Profil donneur du compte connecté (téléphone pris sur le compte) | Bearer |
+| `POST` | `/alerts` | Créer une urgence + matching (rattachée au compte) | Bearer |
+| `POST` | `/donations` | Confirmer **son** don (doit être matché) | Bearer |
+| `GET` | `/me/requests` | Mes demandes | Bearer |
+| `GET` | `/me/matches` | Demandes où je suis compatible (avec `i_confirmed`) | Bearer |
+| `GET` | `/requests/{public_ref}` | Détail d’une demande (demandeur ou donneur matché) | Bearer |
 
-Les réponses de suivi / liste **n’incluent pas** les numéros de téléphone ni le GPS.
-`POST /donors` omet aussi le téléphone en réponse.
+Les réponses **n’incluent pas** les numéros de téléphone (hors `phone` du compte
+pour son propre `/auth/me`) ni le GPS.
 
-JWT n’est pas requis pour ce MVP (pas d’auth).
+Auth : comptes **téléphone + mot de passe**, jeton **JWT bearer**
+(`Authorization: Bearer <token>`). `JWT_SECRET` est requis en production
+(`APP_ENV=production`) ; vide en local, une clé de secours *dev-only* est utilisée.
 
 ## Exemples curl (données fictives, sans secrets)
 
@@ -117,26 +123,33 @@ Après `alembic upgrade head` et éventuellement `python scripts/seed_demo.py`.
 # Santé (sans base)
 curl -s http://127.0.0.1:8000/health
 
-# Hôpitaux reconnus (select)
+# Créer un compte → récupérer le token
+TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"phone":"+22900000123","password":"motdepasse","display_name":"Awa K."}' \
+  | python -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+
+# Hôpitaux reconnus (public)
 curl -s http://127.0.0.1:8000/hospitals/recognized
 
-# Inscription donneur fictif
+# Profil donneur du compte (téléphone pris sur le compte)
 curl -s -X POST http://127.0.0.1:8000/donors \
-  -H 'Content-Type: application/json' \
-  -d '{"display_name":"Donneur Demo","blood_group":"O+","phone":"+22900000000","city":"Zone Demo"}'
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"blood_group":"O+","city":"Cotonou"}'
 
 # Alerte : remplacer HOSPITAL_ID par un id renvoyé par /hospitals/recognized
 curl -s -X POST http://127.0.0.1:8000/alerts \
-  -H 'Content-Type: application/json' \
-  -d '{"public_ref":"REQ-DEMO-API","blood_group_needed":"O+","patient_display_name":"Patient Demo","hospital_id":"HOSPITAL_ID","zone_label":"Zone Demo"}'
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"public_ref":"REQ-DEMO-API","blood_group_needed":"O+","patient_display_name":"A. K.","hospital_id":"HOSPITAL_ID","zone_label":"Cotonou"}'
 
-# Suivi (sans téléphone)
-curl -s http://127.0.0.1:8000/requests/REQ-DEMO-API
+# Mes demandes / mes compatibilités
+curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/me/requests
+curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/me/matches
 
-# Confirmation : remplacer les UUID renvoyés
+# Confirmer son don (le compte doit avoir un profil donneur et être matché)
 curl -s -X POST http://127.0.0.1:8000/donations \
-  -H 'Content-Type: application/json' \
-  -d '{"donor_id":"DONOR_ID","urgency_request_id":"URGENCY_ID"}'
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"urgency_request_id":"URGENCY_ID"}'
 ```
 
 Le seed expose `Hopital Demo` (`00000000-0000-4000-8000-000000000010`) et
@@ -195,7 +208,7 @@ railway.toml
 tests/              # pytest
 ```
 
-JWT n’est pas implémenté. Twilio live n’est pas appelé en défaut/dev.
+Auth JWT bearer (téléphone + mot de passe). Twilio live n’est pas appelé en défaut/dev.
 
 ## Déploiement Railway
 

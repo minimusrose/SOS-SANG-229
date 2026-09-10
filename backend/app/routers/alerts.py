@@ -6,11 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.config import get_settings
 from app.db import get_db
 from app.enums import UrgencyStatus
 from app.matching import find_compatible_donors
-from app.models import Hospital, UrgencyMatch, UrgencyRequest
+from app.models import Hospital, UrgencyMatch, UrgencyRequest, User
 from app.notifications import empty_notification_summary, notify_matched_donors
 from app.refs import new_public_ref
 from app.rules import UnrecognizedHospitalError, require_recognized_hospital
@@ -51,6 +52,7 @@ def _http_unrecognized() -> HTTPException:
 def create_alert(
     payload: UrgencyRequestCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> UrgencyCreateResponse:
     hospital = db.get(Hospital, payload.hospital_id)
     if hospital is None:
@@ -78,6 +80,7 @@ def create_alert(
         blood_group_needed=payload.blood_group_needed,
         patient_display_name=payload.patient_display_name,
         hospital_id=hospital.id,
+        requester_user_id=current_user.id,
         status=UrgencyStatus.ALERTING if matches else UrgencyStatus.OPEN,
         units_needed=payload.units_needed,
         zone_label=payload.zone_label,

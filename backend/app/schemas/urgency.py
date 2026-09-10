@@ -112,6 +112,19 @@ class UrgencySummary(BaseModel):
     created_at: datetime
 
 
+class MyRequestSummary(UrgencySummary):
+    """A request opened by the current account (own data → group is shown)."""
+
+    blood_group_needed: BloodGroup = Field(description=SENSITIVE_NOTE)
+
+
+class MatchedRequestSummary(UrgencySummary):
+    """A request the current account was matched to, as a donor."""
+
+    blood_group_needed: BloodGroup = Field(description=SENSITIVE_NOTE)
+    i_confirmed: bool = False
+
+
 class UrgencyTrackingRead(BaseModel):
     """Requester tracking. Phone and GPS are omitted."""
 

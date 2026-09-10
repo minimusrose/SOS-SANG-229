@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from geoalchemy2 import Geography
 from geoalchemy2.elements import WKBElement
-from sqlalchemy import Boolean, Enum, Index, String, Uuid, text
+from sqlalchemy import Boolean, Enum, ForeignKey, Index, String, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.enums import BloodGroup
@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from app.models.donation import DonationConfirmation
     from app.models.match import UrgencyMatch
     from app.models.notification import SmsNotification
+    from app.models.user import User
 
 _SENSITIVE = "SENSITIVE — never log in cleartext."
 
@@ -37,6 +38,12 @@ class Donor(TimestampMixin, Base):
         Uuid(as_uuid=True),
         primary_key=True,
         server_default=text("gen_random_uuid()"),
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=True,
+        unique=True,
+        comment="Owning account (1-1). Nullable for legacy/seed rows.",
     )
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     blood_group: Mapped[BloodGroup] = mapped_column(
@@ -62,6 +69,7 @@ class Donor(TimestampMixin, Base):
     )
     is_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
+    user: Mapped["User | None"] = relationship(back_populates="donor")
     donation_confirmations: Mapped[list["DonationConfirmation"]] = relationship(
         back_populates="donor",
     )

@@ -19,6 +19,7 @@ if str(BACKEND_DIR) not in sys.path:
 from geoalchemy2.elements import WKTElement  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
+from app.auth import hash_password  # noqa: E402
 from app.db import get_session_factory  # noqa: E402
 from app.enums import BloodGroup, DonationStatus, MatchMethod, UrgencyStatus  # noqa: E402
 from app.models import (  # noqa: E402
@@ -27,6 +28,7 @@ from app.models import (  # noqa: E402
     Hospital,
     UrgencyMatch,
     UrgencyRequest,
+    User,
 )
 from app.rules import require_recognized_hospital  # noqa: E402
 
@@ -39,8 +41,25 @@ DONOR_ID = UUID("00000000-0000-4000-8000-000000000001")
 URGENCY_ID = UUID("00000000-0000-4000-8000-000000000020")
 MATCH_ID = UUID("00000000-0000-4000-8000-000000000021")
 CONFIRM_ID = UUID("00000000-0000-4000-8000-000000000030")
+DONOR_USER_ID = UUID("00000000-0000-4000-8000-000000000040")
+REQUESTER_USER_ID = UUID("00000000-0000-4000-8000-000000000041")
+# Clearly fake local demo password. Never a real credential.
+_DEMO_PASSWORD = "demo1234"  # noqa: S105
 # Backward-compatible alias used by earlier seed revisions.
 HOSPITAL_ID = RECOGNIZED_HOSPITAL_ID
+
+
+def _upsert_user(session, user_id: UUID, *, phone: str, name: str) -> User:
+    user = session.get(User, user_id)
+    if user is None:
+        user = User(
+            id=user_id,
+            phone=phone,
+            display_name=name,
+            password_hash=hash_password(_DEMO_PASSWORD),
+        )
+        session.add(user)
+    return user
 
 
 def _upsert_hospital(
@@ -85,14 +104,31 @@ def main() -> None:
         )
         require_recognized_hospital(recognized)
 
+        _upsert_user(
+            session,
+            DONOR_USER_ID,
+            phone="+22900000000",
+            name="Donneur Demo",
+        )
+        _upsert_user(
+            session,
+            REQUESTER_USER_ID,
+            phone="+22900000098",
+            name="Demandeur Demo",
+        )
+        session.flush()
+
         already = session.scalar(
             select(UrgencyRequest.id).where(UrgencyRequest.public_ref == "REQ-DEMO-001")
         )
         if already is not None:
+            existing_donor = session.get(Donor, DONOR_ID)
+            if existing_donor is not None and existing_donor.user_id is None:
+                existing_donor.user_id = DONOR_USER_ID
             session.commit()
             print(
                 "Demo seed already present (REQ-DEMO-001). "
-                "Hospital recognition flags refreshed. "
+                "Hospital flags + demo accounts refreshed. "
                 "Sensitive fields are not printed."
             )
             return
@@ -101,6 +137,7 @@ def main() -> None:
             session.add(
                 Donor(
                     id=DONOR_ID,
+                    user_id=DONOR_USER_ID,
                     display_name="Donneur Demo",
                     blood_group=BloodGroup.O_POSITIVE,
                     phone="+22900000000",
@@ -117,6 +154,7 @@ def main() -> None:
                 blood_group_needed=BloodGroup.O_POSITIVE,
                 patient_display_name="Patient Demo",
                 hospital_id=RECOGNIZED_HOSPITAL_ID,
+                requester_user_id=REQUESTER_USER_ID,
                 status=UrgencyStatus.ALERTING,
                 units_needed=1,
                 zone_label="Zone Demo",

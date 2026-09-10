@@ -146,6 +146,7 @@ def test_alert_create_persists_simulated_notifications(
     client: TestClient,
     db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
+    account: dict,
 ) -> None:
     _force_settings(
         monkeypatch,
@@ -186,6 +187,7 @@ def test_alert_create_persists_simulated_notifications(
             "patient_display_name": "Patient Demo",
             "hospital_id": str(hospital.id),
         },
+        headers=account["headers"],
     )
     assert response.status_code == 201
     body = response.json()

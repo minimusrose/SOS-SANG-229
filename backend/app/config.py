@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     # GPS matching radius (meters). City fallback is used when GPS is missing.
     match_radius_meters: int = 15_000
 
+    # Auth (JWT). JWT_SECRET must be a long random string in production; when it
+    # is empty and APP_ENV is not "production" a dev-only fallback is used.
+    jwt_secret: SecretStr = SecretStr("")
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+
     # SMS: default simulate — no Twilio network. Live stays off unless
     # SMS_MODE=live AND all TWILIO_* credentials are present.
     sms_mode: str = SMS_MODE_SIMULATE
@@ -92,6 +98,19 @@ class Settings(BaseSettings):
         if normalized not in {SMS_MODE_SIMULATE, SMS_MODE_LIVE}:
             return SMS_MODE_SIMULATE
         return normalized
+
+    _DEV_JWT_SECRET = "dev-insecure-jwt-secret-not-for-production"  # noqa: S105
+
+    def jwt_signing_key(self) -> str:
+        """Return the HMAC signing key. Raise in production if JWT_SECRET is unset."""
+        configured = self.jwt_secret.get_secret_value().strip()
+        if configured:
+            return configured
+        if self.app_env.strip().lower() == "production":
+            raise RuntimeError(
+                "JWT_SECRET must be set in production. Add it to the environment."
+            )
+        return self._DEV_JWT_SECRET
 
     def twilio_credentials_present(self) -> bool:
         sid = (self.twilio_account_sid or "").strip()

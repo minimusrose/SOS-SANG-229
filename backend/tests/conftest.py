@@ -105,3 +105,39 @@ def client(db_session: Session) -> TestClient:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def make_account(client: TestClient):
+    """Register an account via the API and return its bearer headers + ids."""
+    counter = {"n": 0}
+
+    def _make(
+        *,
+        phone: str | None = None,
+        password: str = "motdepasse",
+        name: str = "Compte Demo",
+    ) -> dict:
+        if phone is None:
+            counter["n"] += 1
+            phone = f"+2299000010{counter['n']:02d}"
+        resp = client.post(
+            "/auth/register",
+            json={"phone": phone, "password": password, "display_name": name},
+        )
+        assert resp.status_code == 201, resp.text
+        body = resp.json()
+        return {
+            "headers": {"Authorization": f"Bearer {body['token']}"},
+            "token": body["token"],
+            "user_id": body["user"]["id"],
+            "phone": phone,
+            "password": password,
+        }
+
+    return _make
+
+
+@pytest.fixture
+def account(make_account) -> dict:
+    return make_account(phone="+22900001000", name="Compte Principal")

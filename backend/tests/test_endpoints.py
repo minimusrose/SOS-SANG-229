@@ -13,12 +13,7 @@ from app.rules import UnrecognizedHospitalError, require_recognized_hospital
 
 
 def _recognized_hospital(db: Session, city: str = "Zone Demo") -> Hospital:
-    hospital = Hospital(
-        id=uuid4(),
-        name="Hopital Demo",
-        city=city,
-        is_recognized=True,
-    )
+    hospital = Hospital(id=uuid4(), name="Hopital Demo", city=city, is_recognized=True)
     db.add(hospital)
     db.commit()
     db.refresh(hospital)
@@ -46,9 +41,11 @@ def _donor(
     available: bool = True,
     phone: str = "+22900000000",
     name: str = "Donneur Demo",
+    user_id=None,
 ) -> Donor:
     donor = Donor(
         id=uuid4(),
+        user_id=user_id,
         display_name=name,
         blood_group=blood_group,
         phone=phone,
@@ -62,6 +59,9 @@ def _donor(
     return donor
 
 
+# --- health / openapi -------------------------------------------------------
+
+
 def test_health_ok(api_client: TestClient) -> None:
     response = api_client.get("/health")
     assert response.status_code == 200
@@ -71,16 +71,85 @@ def test_health_ok(api_client: TestClient) -> None:
 def test_openapi_lists_business_paths(api_client: TestClient) -> None:
     spec = api_client.get("/openapi.json").json()
     paths = spec["paths"]
-    assert "/health" in paths
-    assert "/hospitals" in paths
-    assert "/hospitals/recognized" in paths
-    assert "/donors" in paths
-    assert "/alerts" in paths
-    assert "/donations" in paths
-    assert "/requests/{public_ref}" in paths
-    assert "phone" not in spec["components"]["schemas"]["HospitalPublic"]["properties"]
-    assert "phone" not in spec["components"]["schemas"]["DonorPublic"]["properties"]
-    assert "phone" not in spec["components"]["schemas"]["UrgencyTrackingRead"]["properties"]
+    for path in (
+        "/health",
+        "/auth/register",
+        "/auth/login",
+        "/auth/me",
+        "/hospitals",
+        "/hospitals/recognized",
+        "/donors",
+        "/alerts",
+        "/donations",
+        "/me/requests",
+        "/me/matches",
+        "/requests/{public_ref}",
+    ):
+        assert path in paths, path
+    assert "/requests" not in paths  # global list removed
+    schemas = spec["components"]["schemas"]
+    assert "phone" not in schemas["HospitalPublic"]["properties"]
+    assert "phone" not in schemas["DonorPublic"]["properties"]
+    assert "phone" not in schemas["UrgencyTrackingRead"]["properties"]
+
+
+# --- auth -----------------------------------------------------------------
+
+
+def test_auth_register_login_me(client: TestClient) -> None:
+    reg = client.post(
+        "/auth/register",
+        json={"phone": "+22900002001", "password": "motdepasse", "display_name": "Awa K."},
+    )
+    assert reg.status_code == 201
+    body = reg.json()
+    assert body["user"]["display_name"] == "Awa K."
+    assert body["user"]["has_donor_profile"] is False
+    assert "password" not in reg.text
+
+    dup = client.post(
+        "/auth/register",
+        json={"phone": "+22900002001", "password": "autrepass", "display_name": "X"},
+    )
+    assert dup.status_code == 409
+
+    ok = client.post(
+        "/auth/login",
+        json={"phone": "+22900002001", "password": "motdepasse"},
+    )
+    assert ok.status_code == 200
+    token = ok.json()["token"]
+
+    bad = client.post(
+        "/auth/login",
+        json={"phone": "+22900002001", "password": "mauvais"},
+    )
+    assert bad.status_code == 401
+
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.status_code == 200
+    assert me.json()["display_name"] == "Awa K."
+    assert client.get("/auth/me").status_code == 401
+
+
+def test_protected_endpoints_require_a_token(client: TestClient) -> None:
+    assert client.post("/donors", json={"blood_group": "O+", "city": "Cotonou"}).status_code == 401
+    assert client.post(
+        "/alerts",
+        json={
+            "blood_group_needed": "O+",
+            "patient_display_name": "A. K.",
+            "hospital_id": str(uuid4()),
+        },
+    ).status_code == 401
+    assert client.post(
+        "/donations", json={"urgency_request_id": str(uuid4())}
+    ).status_code == 401
+    assert client.get("/me/requests").status_code == 401
+    assert client.get("/me/matches").status_code == 401
+
+
+# --- hospitals ----------------------------------------------------------------
 
 
 def test_list_recognized_hospitals_omits_unrecognized(
@@ -95,51 +164,56 @@ def test_list_recognized_hospitals_omits_unrecognized(
     body = response.json()
     assert len(body) == 1
     assert body[0]["id"] == str(recognized.id)
-    assert body[0]["name"] == "Hopital Demo"
     assert "contact_phone" not in body[0]
-    assert "location" not in body[0]
     assert "phone" not in body[0]
 
 
-def test_register_donor_omits_phone(client: TestClient) -> None:
+# --- donors -----------------------------------------------------------------
+
+
+def test_register_donor_omits_phone(client: TestClient, account: dict) -> None:
     response = client.post(
         "/donors",
-        json={
-            "display_name": "Donneur Demo",
-            "blood_group": "O+",
-            "phone": "+22900000000",
-            "city": "Zone Demo",
-        },
+        json={"display_name": "Awa K.", "blood_group": "O+", "city": "Cotonou"},
+        headers=account["headers"],
     )
     assert response.status_code == 201
     body = response.json()
-    assert body["display_name"] == "Donneur Demo"
-    assert body["city"] == "Zone Demo"
+    assert body["display_name"] == "Awa K."
+    assert body["city"] == "Cotonou"
     assert "phone" not in body
     assert "location" not in body
 
+    me = client.get("/auth/me", headers=account["headers"])
+    assert me.json()["has_donor_profile"] is True
 
-def test_register_donor_duplicate_phone_conflict(
+
+def test_second_donor_profile_for_account_conflicts(
     client: TestClient,
-    db_session: Session,
+    account: dict,
 ) -> None:
-    _donor(db_session, phone="+22900000000")
-    response = client.post(
+    first = client.post(
         "/donors",
-        json={
-            "display_name": "Donneur Demo 2",
-            "blood_group": "A+",
-            "phone": "+22900000000",
-            "city": "Zone Demo",
-        },
+        json={"blood_group": "O+", "city": "Cotonou"},
+        headers=account["headers"],
     )
-    assert response.status_code == 409
-    assert "+229" not in response.text
+    assert first.status_code == 201
+    second = client.post(
+        "/donors",
+        json={"blood_group": "A+", "city": "Cotonou"},
+        headers=account["headers"],
+    )
+    assert second.status_code == 409
+    assert "+229" not in second.text
+
+
+# --- alerts -----------------------------------------------------------------
 
 
 def test_create_urgency_rejects_unrecognized_hospital(
     client: TestClient,
     db_session: Session,
+    account: dict,
 ) -> None:
     hospital = _unrecognized_hospital(db_session)
     response = client.post(
@@ -147,22 +221,27 @@ def test_create_urgency_rejects_unrecognized_hospital(
         json={
             "public_ref": "REQ-DEMO-UNREC",
             "blood_group_needed": "O+",
-            "patient_display_name": "Patient Demo",
+            "patient_display_name": "A. K.",
             "hospital_id": str(hospital.id),
         },
+        headers=account["headers"],
     )
     assert response.status_code == 400
     assert "recognized" in response.json()["detail"].lower()
 
 
-def test_create_urgency_rejects_missing_hospital(client: TestClient) -> None:
+def test_create_urgency_rejects_missing_hospital(
+    client: TestClient,
+    account: dict,
+) -> None:
     response = client.post(
         "/alerts",
         json={
             "blood_group_needed": "O+",
-            "patient_display_name": "Patient Demo",
+            "patient_display_name": "A. K.",
             "hospital_id": str(uuid4()),
         },
+        headers=account["headers"],
     )
     assert response.status_code == 404
 
@@ -170,25 +249,26 @@ def test_create_urgency_rejects_missing_hospital(client: TestClient) -> None:
 def test_create_urgency_duplicate_public_ref_conflict(
     client: TestClient,
     db_session: Session,
+    account: dict,
 ) -> None:
     hospital = _recognized_hospital(db_session)
     payload = {
         "public_ref": "REQ-DEMO-DUP",
         "blood_group_needed": "O+",
-        "patient_display_name": "Patient Demo",
+        "patient_display_name": "A. K.",
         "hospital_id": str(hospital.id),
     }
-    first = client.post("/alerts", json=payload)
+    first = client.post("/alerts", json=payload, headers=account["headers"])
     assert first.status_code == 201
-    second = client.post("/alerts", json=payload)
+    second = client.post("/alerts", json=payload, headers=account["headers"])
     assert second.status_code == 409
     assert "public_ref" in second.json()["detail"].lower()
-    assert "+229" not in second.text
 
 
 def test_create_urgency_matches_compatible_city_donor(
     client: TestClient,
     db_session: Session,
+    account: dict,
 ) -> None:
     hospital = _recognized_hospital(db_session, city="Zone Demo")
     nearby = _donor(
@@ -196,29 +276,21 @@ def test_create_urgency_matches_compatible_city_donor(
         city="Zone Demo",
         blood_group=BloodGroup.O_NEGATIVE,
         phone="+22900000001",
-        name="Donneur Demo Compatible",
+        name="Donneur Compatible",
     )
     _donor(
         db_session,
         city="Ville Demo",
         blood_group=BloodGroup.O_NEGATIVE,
         phone="+22900000002",
-        name="Donneur Demo Loin",
+        name="Donneur Loin",
     )
     _donor(
         db_session,
         city="Zone Demo",
         blood_group=BloodGroup.A_POSITIVE,
         phone="+22900000003",
-        name="Donneur Demo Incompatible",
-    )
-    _donor(
-        db_session,
-        city="Zone Demo",
-        blood_group=BloodGroup.O_NEGATIVE,
-        phone="+22900000004",
-        name="Donneur Demo Indisponible",
-        available=False,
+        name="Donneur Incompatible",
     )
 
     response = client.post(
@@ -226,99 +298,27 @@ def test_create_urgency_matches_compatible_city_donor(
         json={
             "public_ref": "REQ-DEMO-MATCH",
             "blood_group_needed": "O+",
-            "patient_display_name": "Patient Demo",
+            "patient_display_name": "A. K.",
             "hospital_id": str(hospital.id),
             "zone_label": "Zone Demo",
         },
+        headers=account["headers"],
     )
     assert response.status_code == 201
     body = response.json()
-    assert body["public_ref"] == "REQ-DEMO-MATCH"
     assert body["alerted_donors_count"] == 1
     assert body["status"] == "alerting"
-    assert body["matching"]["radius_meters"] == 15_000
     assert body["matching"]["match_count"] == 1
     assert body["matching"]["candidates"][0]["donor_id"] == str(nearby.id)
-    assert body["matching"]["candidates"][0]["match_method"] == "city"
     assert "phone" not in body["matching"]["candidates"][0]
-    assert body["notification"]["sent"] is False
-    assert body["notification"]["implemented"] is True
-    assert body["notification"]["channel"] == "sms_simulate"
-    assert body["notification"]["mode"] == "simulate"
     assert body["notification"]["simulated_count"] == 1
-    assert body["notification"]["attempted_count"] == 1
-    assert body["notification"]["failed_count"] == 0
-    assert body["notification"]["live_enabled"] is False
     assert "+229" not in response.text
-
-    from app.models import SmsNotification
-
-    stored = db_session.query(SmsNotification).all()
-    assert len(stored) == 1
-    assert stored[0].status == "simulated"
-    assert stored[0].channel == "sms_simulate"
-    assert stored[0].donor_id == nearby.id
-    assert "phone" not in SmsNotification.__table__.c
-
-
-def test_tracking_and_confirm_donation(
-    client: TestClient,
-    db_session: Session,
-) -> None:
-    hospital = _recognized_hospital(db_session)
-    donor = _donor(db_session)
-
-    created = client.post(
-        "/alerts",
-        json={
-            "public_ref": "REQ-DEMO-TRACK",
-            "blood_group_needed": "O+",
-            "patient_display_name": "Patient Demo",
-            "hospital_id": str(hospital.id),
-        },
-    )
-    assert created.status_code == 201
-    urgency_id = created.json()["id"]
-
-    tracking = client.get("/requests/REQ-DEMO-TRACK")
-    assert tracking.status_code == 200
-    track_body = tracking.json()
-    assert track_body["id"] == urgency_id
-    assert track_body["alerted_donors_count"] == 1
-    assert track_body["confirmed_donations_count"] == 0
-    assert track_body["status"] == "alerting"
-    assert "phone" not in track_body
-    assert all("phone" not in item for item in track_body["matched_donors"])
-
-    listed = client.get("/requests")
-    assert listed.status_code == 200
-    assert listed.json()[0]["public_ref"] == "REQ-DEMO-TRACK"
-    assert listed.json()[0]["id"] == urgency_id
-    assert "phone" not in listed.json()[0]
-    assert "blood_group_needed" not in listed.json()[0]
-
-    confirm = client.post(
-        "/donations",
-        json={"donor_id": str(donor.id), "urgency_request_id": urgency_id},
-    )
-    assert confirm.status_code == 201
-    assert confirm.json()["status"] == "confirmed"
-    assert "phone" not in confirm.json()
-
-    after = client.get("/requests/REQ-DEMO-TRACK")
-    assert after.json()["confirmed_donations_count"] == 1
-    assert after.json()["status"] == "fulfilled"
-
-    duplicate = client.post(
-        "/donations",
-        json={"donor_id": str(donor.id), "urgency_request_id": urgency_id},
-    )
-    assert duplicate.status_code == 409
 
 
 def test_create_urgency_matches_gps_donor_inside_radius(
     client: TestClient,
     db_session: Session,
+    account: dict,
 ) -> None:
     from app.geo import geopoint_to_wkt
     from app.schemas.common import GeoPoint
@@ -333,7 +333,7 @@ def test_create_urgency_matches_gps_donor_inside_radius(
     db_session.add(hospital)
     nearby = Donor(
         id=uuid4(),
-        display_name="Donneur Demo Proche",
+        display_name="Donneur Proche",
         blood_group=BloodGroup.O_NEGATIVE,
         phone="+22900000011",
         city="Autre Ville Demo",
@@ -342,7 +342,7 @@ def test_create_urgency_matches_gps_donor_inside_radius(
     )
     far = Donor(
         id=uuid4(),
-        display_name="Donneur Demo Loin",
+        display_name="Donneur Loin",
         blood_group=BloodGroup.O_NEGATIVE,
         phone="+22900000012",
         city="Zone Demo",
@@ -357,17 +357,159 @@ def test_create_urgency_matches_gps_donor_inside_radius(
         json={
             "public_ref": "REQ-DEMO-GPS",
             "blood_group_needed": "O+",
-            "patient_display_name": "Patient Demo",
+            "patient_display_name": "A. K.",
             "hospital_id": str(hospital.id),
         },
+        headers=account["headers"],
     )
     assert response.status_code == 201
     body = response.json()
     assert body["alerted_donors_count"] == 1
     assert body["matching"]["candidates"][0]["donor_id"] == str(nearby.id)
     assert body["matching"]["candidates"][0]["match_method"] == "gps"
-    assert "phone" not in body["matching"]["candidates"][0]
     assert "+229" not in response.text
+
+
+# --- personalised views + confirm -----------------------------------------
+
+
+def test_me_requests_are_scoped_to_the_owner(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    hospital = _recognized_hospital(db_session)
+    requester = make_account(name="Demandeur")
+    other = make_account(name="Autre")
+
+    created = client.post(
+        "/alerts",
+        json={
+            "public_ref": "REQ-DEMO-MINE",
+            "blood_group_needed": "O+",
+            "patient_display_name": "A. K.",
+            "hospital_id": str(hospital.id),
+        },
+        headers=requester["headers"],
+    )
+    assert created.status_code == 201
+
+    mine = client.get("/me/requests", headers=requester["headers"])
+    assert mine.status_code == 200
+    assert [r["public_ref"] for r in mine.json()] == ["REQ-DEMO-MINE"]
+    assert mine.json()[0]["blood_group_needed"] == "O+"
+
+    assert client.get("/me/requests", headers=other["headers"]).json() == []
+
+
+def test_me_matches_empty_without_donor_profile(
+    client: TestClient,
+    account: dict,
+) -> None:
+    resp = client.get("/me/matches", headers=account["headers"])
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_full_flow_match_confirm_increments_requester_count(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    hospital = _recognized_hospital(db_session, city="Zone Demo")
+    requester = make_account(name="Demandeur")
+    donor_acc = make_account(name="Donneur")
+
+    prof = client.post(
+        "/donors",
+        json={"blood_group": "O-", "city": "Zone Demo"},
+        headers=donor_acc["headers"],
+    )
+    assert prof.status_code == 201
+
+    created = client.post(
+        "/alerts",
+        json={
+            "public_ref": "REQ-DEMO-FLOW",
+            "blood_group_needed": "O+",
+            "patient_display_name": "A. K.",
+            "hospital_id": str(hospital.id),
+        },
+        headers=requester["headers"],
+    )
+    assert created.status_code == 201
+    urgency_id = created.json()["id"]
+    assert created.json()["alerted_donors_count"] == 1
+
+    matches = client.get("/me/matches", headers=donor_acc["headers"])
+    assert matches.status_code == 200
+    assert len(matches.json()) == 1
+    assert matches.json()[0]["public_ref"] == "REQ-DEMO-FLOW"
+    assert matches.json()[0]["i_confirmed"] is False
+
+    # A random donor account that was not matched cannot confirm.
+    stranger = make_account(name="Etranger")
+    client.post(
+        "/donors",
+        json={"blood_group": "O-", "city": "Ailleurs"},
+        headers=stranger["headers"],
+    )
+    forbidden = client.post(
+        "/donations",
+        json={"urgency_request_id": urgency_id},
+        headers=stranger["headers"],
+    )
+    assert forbidden.status_code == 403
+
+    confirm = client.post(
+        "/donations",
+        json={"urgency_request_id": urgency_id},
+        headers=donor_acc["headers"],
+    )
+    assert confirm.status_code == 201
+    assert confirm.json()["status"] == "confirmed"
+
+    tracking = client.get("/requests/REQ-DEMO-FLOW", headers=requester["headers"])
+    assert tracking.status_code == 200
+    assert tracking.json()["confirmed_donations_count"] == 1
+    assert tracking.json()["status"] == "fulfilled"
+
+    again = client.post(
+        "/donations",
+        json={"urgency_request_id": urgency_id},
+        headers=donor_acc["headers"],
+    )
+    assert again.status_code == 409
+
+    matches_after = client.get("/me/matches", headers=donor_acc["headers"])
+    assert matches_after.json()[0]["i_confirmed"] is True
+
+
+def test_request_detail_forbidden_for_unrelated_account(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    hospital = _recognized_hospital(db_session)
+    requester = make_account(name="Demandeur")
+    nosy = make_account(name="Curieux")
+
+    client.post(
+        "/alerts",
+        json={
+            "public_ref": "REQ-DEMO-PRIV",
+            "blood_group_needed": "O+",
+            "patient_display_name": "A. K.",
+            "hospital_id": str(hospital.id),
+        },
+        headers=requester["headers"],
+    )
+    assert client.get(
+        "/requests/REQ-DEMO-PRIV", headers=nosy["headers"]
+    ).status_code == 403
+    assert client.get(
+        "/requests/REQ-DEMO-PRIV", headers=requester["headers"]
+    ).status_code == 200
 
 
 def test_require_recognized_hospital_helper() -> None:

@@ -19,6 +19,7 @@ class ModelMetadataTests(unittest.TestCase):
         self.assertEqual(
             set(Base.metadata.tables),
             {
+                "users",
                 "donors",
                 "hospitals",
                 "urgency_requests",
@@ -67,10 +68,10 @@ class SchemaTests(unittest.TestCase):
         payload = DonorCreate(
             display_name="Donneur Demo",
             blood_group=BloodGroup.O_POSITIVE,
-            phone="+22900000000",
             city="Zone Demo",
         )
         self.assertEqual(payload.city, "Zone Demo")
+        self.assertFalse(hasattr(payload, "phone"))
 
     def test_hospital_create_fictional_payload(self) -> None:
         payload = HospitalCreate(name="Hopital Demo", city="Zone Demo")
@@ -108,10 +109,10 @@ class SchemaTests(unittest.TestCase):
         self.assertEqual(payload.units_needed, 1)
 
     def test_donation_create(self) -> None:
-        donor_id = uuid4()
         urgency_id = uuid4()
-        payload = DonationConfirmationCreate(donor_id=donor_id, urgency_request_id=urgency_id)
-        self.assertEqual(payload.donor_id, donor_id)
+        payload = DonationConfirmationCreate(urgency_request_id=urgency_id)
+        self.assertEqual(payload.urgency_request_id, urgency_id)
+        self.assertFalse(hasattr(payload, "donor_id"))
         self.assertEqual(DonationStatus.PENDING.value, "pending")
 
 
