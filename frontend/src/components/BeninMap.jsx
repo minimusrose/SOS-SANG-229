@@ -1,37 +1,41 @@
 /**
- * Stylised map of Bénin: donor points light up around a health facility while
- * a signal pulses outward — a picture of the matching, not a stock photo.
- * All motion carries `data-decorative` so it freezes under reduce-motion.
+ * Map of Bénin (real border outline, projected from GeoJSON) with donor points
+ * lighting up around a health facility while a signal pulses outward — a
+ * picture of the matching, not a stock photo. Every animated element carries
+ * `data-decorative` so it freezes under reduce-motion.
  */
 
+// Bénin national border, projected into this 300×400 viewBox
+// (source: johan/world.geo.json, longitude/latitude → SVG).
 const COUNTRY =
-  "M138 356 C128 340 122 320 120 300 C116 280 108 258 116 236 " +
-  "C124 214 110 196 112 172 C114 146 96 120 104 96 C110 74 128 60 150 52 " +
-  "C172 46 196 58 218 52 C236 47 252 56 256 78 C260 98 246 116 244 138 " +
-  "C242 162 254 186 240 210 C228 232 236 256 220 278 C206 298 196 318 182 336 " +
-  "C174 346 162 352 152 358 C148 360 142 360 138 356 Z";
+  "M174 373 L125.2 380 L110.6 339.3 L113.3 203.6 L101.4 191.4 L99.2 162.4 " +
+  "L78.6 141.7 L60.6 124.3 L68.1 93.2 L88.4 86.5 L100.5 60.6 L129.3 55.1 " +
+  "L142.3 37.5 L162.1 20.2 L183.3 20 L228.3 54 L226 73.6 L239.3 108.7 " +
+  "L227.7 132.5 L233.9 148.3 L205.2 184.9 L187 203 L175.9 240.3 L177.4 277.9 Z";
 
-const FACILITY = { x: 152, y: 320 };
+// Cotonou
+const FACILITY = { x: 158, y: 366 };
 
+// Approx. positions of real towns inside the outline.
 const DONORS = [
-  { x: 122, y: 250, tone: "primary" },
-  { x: 200, y: 108, tone: "primary" },
-  { x: 232, y: 168, tone: "success" },
-  { x: 128, y: 158, tone: "primary" },
-  { x: 176, y: 66, tone: "primary" },
-  { x: 214, y: 240, tone: "primary" },
-  { x: 162, y: 288, tone: "success" },
+  { x: 170, y: 359, tone: "primary" }, // Porto-Novo
+  { x: 137, y: 319, tone: "success" }, // Bohicon (a répondu)
+  { x: 162, y: 269, tone: "primary" }, // Savè
+  { x: 170, y: 191, tone: "primary" }, // Parakou
+  { x: 114, y: 170, tone: "primary" }, // Djougou
+  { x: 104, y: 134, tone: "primary" }, // Natitingou
+  { x: 189, y: 85, tone: "success" }, // Kandi (a répondu)
 ];
 
 const LINKS = [
-  [162, 288],
-  [122, 250],
+  [137, 319],
+  [170, 359],
 ];
 
 export default function BeninMap({ className = "" }) {
   return (
     <svg
-      viewBox="0 0 300 380"
+      viewBox="0 0 300 400"
       className={`h-full w-full text-primary ${className}`.trim()}
       role="img"
       aria-label="Carte du Bénin : des donneurs compatibles autour d’un établissement de santé"
@@ -50,26 +54,24 @@ export default function BeninMap({ className = "" }) {
         </pattern>
       </defs>
 
-      {/* landmass */}
       <path
         d={COUNTRY}
         fill="currentColor"
         fillOpacity="0.06"
         stroke="currentColor"
-        strokeOpacity="0.28"
-        strokeWidth="2"
+        strokeOpacity="0.3"
+        strokeWidth="2.5"
         strokeLinejoin="round"
       />
       <rect
         x="0"
         y="0"
         width="300"
-        height="380"
+        height="400"
         fill="url(#benin-dots)"
         clipPath="url(#benin-clip)"
       />
 
-      {/* matching links */}
       {LINKS.map(([x, y]) => (
         <line
           key={`${x}-${y}`}
@@ -87,7 +89,6 @@ export default function BeninMap({ className = "" }) {
         />
       ))}
 
-      {/* signal rings from the facility */}
       {[0, 0.9, 1.8].map((delay) => (
         <circle
           key={delay}
@@ -108,7 +109,6 @@ export default function BeninMap({ className = "" }) {
         />
       ))}
 
-      {/* donor points */}
       {DONORS.map((d, i) => (
         <g
           key={`${d.x}-${d.y}`}
@@ -140,15 +140,13 @@ export default function BeninMap({ className = "" }) {
             className="svg-anim"
             data-decorative
             style={{
-              animation:
-                "dot-in 640ms cubic-bezier(.34,1.56,.64,1) both",
+              animation: "dot-in 640ms cubic-bezier(.34,1.56,.64,1) both",
               animationDelay: `${380 + i * 170}ms`,
             }}
           />
         </g>
       ))}
 
-      {/* health facility */}
       <circle cx={FACILITY.x} cy={FACILITY.y} r="13" fill="#fff" />
       <circle cx={FACILITY.x} cy={FACILITY.y} r="10" fill="currentColor" />
       <path
