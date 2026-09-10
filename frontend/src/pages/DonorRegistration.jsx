@@ -24,7 +24,6 @@ export default function DonorRegistration({ onToast }) {
 
   const [form, setForm] = useState(INITIAL);
   const [submitting, setSubmitting] = useState(false);
-  const [justOk, setJustOk] = useState(false);
   const [result, setResult] = useState(null);
 
   const canSubmit = Boolean(
@@ -48,7 +47,6 @@ export default function DonorRegistration({ onToast }) {
     event.preventDefault();
     if (!canSubmit || submitting) return;
 
-    setJustOk(false);
     setSubmitting(true);
     try {
       if (needsAccount) {
@@ -66,10 +64,6 @@ export default function DonorRegistration({ onToast }) {
       await refreshMe();
       setResult(created);
       setForm(INITIAL);
-      setJustOk(true);
-      onToast(
-        `Profil enregistré pour ${created.display_name}. Vous serez prévenu en cas d’urgence compatible.`,
-      );
     } catch (error) {
       const conflict =
         error instanceof ApiError && error.status === 409
@@ -81,16 +75,64 @@ export default function DonorRegistration({ onToast }) {
     }
   }
 
-  if (user?.has_donor_profile && !result) {
+  if (result) {
+    return (
+      <PageFrame>
+        <div className="card space-y-5 border-primary/20 text-center">
+          <span className="mx-auto flex h-16 w-16 animate-pop items-center justify-center rounded-full bg-success/15 text-success">
+            <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M20 6 9 17l-5-5"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength="1"
+                style={{
+                  strokeDasharray: 1,
+                  strokeDashoffset: 1,
+                  animation:
+                    "draw-check 420ms cubic-bezier(.22,1,.36,1) 120ms forwards",
+                }}
+              />
+            </svg>
+          </span>
+          <h1 className="text-2xl font-extrabold text-secondary">
+            Inscription réussie
+          </h1>
+          <p className="text-sm leading-6 text-muted">
+            Profil enregistré pour {result.display_name} ({result.city}). Vous
+            serez prévenu dès qu’un don compatible sera nécessaire près de chez
+            vous.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link to="/" className="btn-secondary">
+              Retour à l’accueil
+            </Link>
+            <Link to="/mes-demandes" className="btn-primary">
+              Voir mes demandes
+            </Link>
+          </div>
+        </div>
+      </PageFrame>
+    );
+  }
+
+  if (user?.has_donor_profile) {
     return (
       <PageFrame>
         <div className="space-y-6">
           <PageHeader kicker="Volontaire" title="Vous êtes" highlight="donneur">
             Votre profil est déjà enregistré.
           </PageHeader>
-          <Link to="/demandes-en-cours" className="btn-primary">
-            Voir les demandes compatibles
-          </Link>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link to="/" className="btn-secondary">
+              Retour à l’accueil
+            </Link>
+            <Link to="/demandes-en-cours" className="btn-primary">
+              Voir les demandes compatibles
+            </Link>
+          </div>
         </div>
       </PageFrame>
     );
@@ -230,7 +272,6 @@ export default function DonorRegistration({ onToast }) {
           <div className="space-y-2">
             <SubmitButton
               pending={submitting}
-              success={justOk}
               disabled={!canSubmit}
               className="w-full"
             >
@@ -239,15 +280,6 @@ export default function DonorRegistration({ onToast }) {
             {!canSubmit ? (
               <p className="field-hint">
                 Renseignez les champs requis pour continuer.
-              </p>
-            ) : null}
-            {result ? (
-              <p className="text-sm font-semibold text-success">
-                Profil enregistré pour {result.display_name} ({result.city}).{" "}
-                <Link to="/demandes-en-cours" className="text-primary-strong">
-                  Voir les demandes compatibles
-                </Link>
-                .
               </p>
             ) : null}
           </div>
