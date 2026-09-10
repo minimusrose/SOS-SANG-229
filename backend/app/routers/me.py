@@ -37,6 +37,7 @@ def _profile(user: User, donor: Donor) -> DonorProfileRead:
         phone=user.phone,
         blood_group=donor.blood_group,
         city=donor.city,
+        is_available=donor.is_available,
         has_location=donor.location is not None,
     )
 
@@ -72,6 +73,8 @@ def update_donor_profile(
         donor.blood_group = payload.blood_group
     if payload.city is not None:
         donor.city = payload.city.strip()
+    if payload.is_available is not None:
+        donor.is_available = payload.is_available
     if payload.location is not None:
         donor.location = geopoint_to_wkt(payload.location)
     db.commit()

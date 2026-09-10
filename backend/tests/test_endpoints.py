@@ -433,6 +433,7 @@ def test_donor_profile_read_and_update(client: TestClient, account: dict) -> Non
         "phone": account["phone"],
         "blood_group": "O+",
         "city": "Cotonou",
+        "is_available": True,
         "has_location": False,
     }
 
@@ -499,6 +500,50 @@ def test_donor_location_added_via_profile_update(
     assert upd.status_code == 200
     assert upd.json()["has_location"] is True
     assert "9.34" not in upd.text and "2.63" not in upd.text
+
+
+def test_unavailable_donor_is_excluded_from_matching(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    hospital = _recognized_hospital(db_session, city="Zone Demo")
+    donor_acc = make_account(name="Donneur")
+    requester = make_account(name="Demandeur")
+
+    client.post(
+        "/donors",
+        json={"blood_group": "O-", "city": "Zone Demo"},
+        headers=donor_acc["headers"],
+    )
+    off = client.patch(
+        "/me/donor-profile",
+        json={"is_available": False},
+        headers=donor_acc["headers"],
+    )
+    assert off.status_code == 200
+    assert off.json()["is_available"] is False
+
+    created = client.post(
+        "/alerts",
+        json={
+            "public_ref": "REQ-DEMO-OFF",
+            "blood_group_needed": "O+",
+            "patient_display_name": "A. K.",
+            "hospital_id": str(hospital.id),
+            "zone_label": "Zone Demo",
+        },
+        headers=requester["headers"],
+    )
+    assert created.status_code == 201
+    assert created.json()["alerted_donors_count"] == 0
+
+    back = client.patch(
+        "/me/donor-profile",
+        json={"is_available": True},
+        headers=donor_acc["headers"],
+    )
+    assert back.json()["is_available"] is True
 
 
 def test_full_flow_match_confirm_increments_requester_count(

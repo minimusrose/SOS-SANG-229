@@ -14,7 +14,12 @@ export default function MyInfo({ onToast }) {
   const { refreshMe } = useAuth();
   const [state, setState] = useState("loading"); // loading | ready | no-donor | error
   const [phone, setPhone] = useState("");
-  const [form, setForm] = useState({ displayName: "", bloodGroup: "", city: "" });
+  const [form, setForm] = useState({
+    displayName: "",
+    bloodGroup: "",
+    city: "",
+    available: true,
+  });
   const [hasLocation, setHasLocation] = useState(false);
   const [geoBusy, setGeoBusy] = useState(false);
   const [geoMsg, setGeoMsg] = useState("");
@@ -32,6 +37,7 @@ export default function MyInfo({ onToast }) {
           displayName: p.display_name,
           bloodGroup: p.blood_group,
           city: p.city,
+          available: p.is_available !== false,
         });
         setHasLocation(Boolean(p.has_location));
         setState("ready");
@@ -83,11 +89,13 @@ export default function MyInfo({ onToast }) {
         display_name: form.displayName.trim(),
         blood_group: form.bloodGroup,
         city: form.city,
+        is_available: form.available,
       });
       setForm({
         displayName: updated.display_name,
         bloodGroup: updated.blood_group,
         city: updated.city,
+        available: updated.is_available !== false,
       });
       await refreshMe();
       setJustOk(true);
@@ -207,6 +215,31 @@ export default function MyInfo({ onToast }) {
                 ) : null}
               </select>
             </div>
+
+            <fieldset className="rounded-2xl bg-light px-5 py-4">
+              <legend className="px-1 text-sm font-bold text-secondary">
+                Disponibilité
+              </legend>
+              <label className="mt-2 flex items-start gap-3 text-sm leading-6 text-secondary">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-accent text-primary focus:ring-primary"
+                  checked={form.available}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      available: event.target.checked,
+                    }))
+                  }
+                />
+                <span>Je suis disponible pour donner du sang.</span>
+              </label>
+              <p className="mt-2 text-sm text-muted">
+                Décochez si vous ne pouvez pas donner pour le moment (don il y a
+                moins de trois mois, voyage, maladie, grossesse…). Vous ne
+                recevrez plus d’alertes tant que la case est décochée.
+              </p>
+            </fieldset>
 
             <fieldset className="rounded-2xl bg-light px-5 py-4">
               <legend className="px-1 text-sm font-bold text-secondary">
