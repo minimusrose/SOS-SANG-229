@@ -12,7 +12,7 @@ En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer 
 | Backend | Python FastAPI | Endpoints métier + matching PostGIS |
 | Base | PostgreSQL + PostGIS | Docker Compose + migrations Alembic |
 | SMS | Twilio | Simulé par défaut (`SMS_MODE=simulate`) |
-| Auth | JWT | Prévu (variables placeholder) |
+| Auth | Comptes téléphone + mot de passe, JWT bearer | En place (`JWT_SECRET`) |
 
 ## Structure
 
@@ -61,11 +61,12 @@ Ouvre [http://localhost:5173](http://localhost:5173) (ou [http://127.0.0.1:5173]
 
 | Route | Parcours |
 | --- | --- |
-| `/` | Accueil |
-| `/donneur/inscription` | `POST /donors` |
-| `/alerte` | `GET /hospitals/recognized` + `POST /alerts` |
-| `/suivi` | `GET /requests` |
-| `/suivi/:publicRef` | `GET /requests/{public_ref}` + `POST /donations` |
+| `/` | Accueil (contextuel : CTA si déconnecté, menu compte si connecté) |
+| `/donneur/inscription` | `POST /auth/register` (si nouveau) + `POST /donors` |
+| `/alerte` | `GET /hospitals/recognized` + `POST /auth/register` (si nouveau) + `POST /alerts` |
+| `/connexion` | `POST /auth/login` |
+| `/mes-demandes` | `GET /me/requests` (auth) — clic → `GET /requests/{public_ref}` |
+| `/demandes-en-cours` | `GET /me/matches` (auth) + `POST /donations` |
 
 Santé API : [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health) — docs : [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
@@ -76,14 +77,19 @@ Téléphone, GPS et groupe sanguin sont sensibles — ne jamais les logger en cl
 ## Plan de test rapide
 
 1. `GET /health` → `{ "status": "ok" }`.
-2. Inscription donneur : nom `Donneur Demo`, groupe `O+`, téléphone `+22900000001`, ville `Zone Demo` → toast succès, pas de téléphone affiché.
-3. Alerte : patient `Patient Demo`, hôpital reconnu chargé depuis l’API, groupe `O+` → `public_ref` + nombre de donneurs + résumé SMS simulé (`simulated_count`, aucun envoi réel).
-4. Suivi : la nouvelle référence apparaît ; le détail montre groupe / patient / compteurs.
-5. Confirmer le don depuis l’alerte ou le suivi → compteur confirmé, statut pourvue si unités atteintes.
-6. État vide : filtre sans lignes, ou API arrêtée → message d’erreur, pas de stubs `REQ-DEMO-*`.
-7. `cd frontend && npm run build` OK.
+2. Accueil déconnecté → « Devenir donneur ». Remplir nom + téléphone + mot de passe
+   (8+) + groupe + zone → compte créé, le bouton au nom apparaît dans l’en-tête.
+3. Deuxième compte (autre navigateur / storage vidé) → « Signaler une urgence » :
+   nom + téléphone + mot de passe + groupe + patient (initiales) + établissement
+   reconnu → écran de confirmation ; la demande apparaît dans **Mes demandes**.
+4. Si le premier compte est compatible : **Demandes en cours** la liste →
+   « Confirmer mon don » → chez le demandeur, `confirmés +1`, statut « Pourvue »
+   si `units_needed` atteint. Deuxième confirm → refusé.
+5. `/mes-demandes` déconnecté → redirection `/connexion` ; se reconnecter →
+   l’état revient (jeton persistant).
+6. `cd backend && .venv/Scripts/python -m pytest -q` OK ; `cd frontend && npm run build` OK.
 
-Hors scope : achat de numéros Twilio, envoi SMS réel, JWT, noms de domaine achetés.
+Hors scope : achat de numéros Twilio, envoi SMS réel, noms de domaine achetés.
 
 ## Déploiement (Railway API + Vercel front)
 
@@ -133,7 +139,8 @@ Railway peut fournir `postgres://…` : l’API le normalise en `postgresql://`.
    | `SMS_MODE` | `simulate` (démo jury — pas de Twilio réel) |
    | `APP_ENV` | `production` |
    | `MATCH_RADIUS_METERS` | `15000` (optionnel) |
-   | `TWILIO_*` / `JWT_SECRET` | laisser vides |
+   | `JWT_SECRET` | **obligatoire** (`APP_ENV=production`) — chaîne aléatoire longue, jamais commitée |
+   | `TWILIO_*` | laisser vides |
 
 5. Déployer. Le start script applique les migrations puis lance uvicorn. Santé : `https://….up.railway.app/health` → `{"status":"ok"}`.
 6. Alternative dashboard si `railway.toml` n’est pas pris en compte : Builder = Dockerfile, start = `./start.sh`, healthcheck = `/health`.
@@ -168,7 +175,7 @@ Ne jamais coller `DATABASE_URL` ni des données réelles dans git, tickets, READ
 
 ### Ordre conseillé
 
-1. PostGIS Railway → 2. API Railway + `DATABASE_URL` + `SMS_MODE=simulate` → 3. Vercel + `VITE_API_BASE_URL` → 4. `FRONTEND_ORIGIN` = URL Vercel → 5. seed démo → 6. parcours `/` → inscription → alerte → suivi.
+1. PostGIS Railway → 2. API Railway + `DATABASE_URL` + `JWT_SECRET` + `SMS_MODE=simulate` → 3. Vercel + `VITE_API_BASE_URL` → 4. `FRONTEND_ORIGIN` = URL Vercel → 5. seed démo → 6. parcours `/` → devenir donneur / signaler une urgence → mes demandes / demandes en cours.
 
 ## SMS : simulate vs live
 

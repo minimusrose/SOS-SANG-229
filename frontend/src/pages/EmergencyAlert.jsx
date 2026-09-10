@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
+import { useAuth } from "../auth/AuthContext.jsx";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
@@ -10,6 +11,9 @@ import SubmitButton from "../components/SubmitButton.jsx";
 import UrgencyBadge from "../components/UrgencyBadge.jsx";
 
 const INITIAL = {
+  requesterName: "",
+  phone: "",
+  password: "",
   bloodGroup: "",
   patientName: "",
   hospitalId: "",
@@ -17,19 +21,25 @@ const INITIAL = {
 };
 
 export default function EmergencyAlert({ onToast }) {
+  const { user, register } = useAuth();
+  const needsAccount = !user;
+
   const [form, setForm] = useState(INITIAL);
   const [hospitals, setHospitals] = useState([]);
   const [hospitalsState, setHospitalsState] = useState("loading");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
-  const [confirmingId, setConfirmingId] = useState(null);
 
   const selectedHospital = hospitals.find((item) => item.id === form.hospitalId);
   const canSubmit = Boolean(
     form.bloodGroup &&
       form.patientName.trim() &&
       selectedHospital?.is_recognized &&
-      Number(form.unitsNeeded) >= 1,
+      Number(form.unitsNeeded) >= 1 &&
+      (!needsAccount ||
+        (form.requesterName.trim() &&
+          form.phone.trim() &&
+          form.password.length >= 8)),
   );
 
   const loadHospitals = useCallback(async () => {
@@ -63,6 +73,13 @@ export default function EmergencyAlert({ onToast }) {
 
     setSubmitting(true);
     try {
+      if (needsAccount) {
+        await register({
+          phone: form.phone.trim(),
+          password: form.password,
+          display_name: form.requesterName.trim(),
+        });
+      }
       const created = await api.createAlert({
         blood_group_needed: form.bloodGroup,
         patient_display_name: form.patientName.trim(),
@@ -83,32 +100,6 @@ export default function EmergencyAlert({ onToast }) {
     }
   }
 
-  async function handleConfirm(donorId) {
-    if (!result?.id || confirmingId) return;
-    setConfirmingId(donorId);
-    try {
-      await api.confirmDonation({
-        donor_id: donorId,
-        urgency_request_id: result.id,
-      });
-      setResult((current) => {
-        if (!current) return current;
-        const nextCount = (current.confirmed_donations_count || 0) + 1;
-        return {
-          ...current,
-          confirmed_donations_count: nextCount,
-          status:
-            nextCount >= (current.units_needed || 1) ? "fulfilled" : current.status,
-        };
-      });
-      onToast("Don confirmé. Merci pour votre réactivité.");
-    } catch (error) {
-      onToast(error.message);
-    } finally {
-      setConfirmingId(null);
-    }
-  }
-
   return (
     <PageFrame>
       <div className="space-y-8">
@@ -118,12 +109,7 @@ export default function EmergencyAlert({ onToast }) {
         </PageHeader>
 
         {result ? (
-          <AlertConfirmation
-            result={result}
-            confirmingId={confirmingId}
-            onConfirm={handleConfirm}
-            onReset={() => setResult(null)}
-          />
+          <AlertConfirmation result={result} onReset={() => setResult(null)} />
         ) : (
           <>
             <UrgencyBadge>Donneurs alertés en temps réel</UrgencyBadge>
@@ -143,6 +129,64 @@ export default function EmergencyAlert({ onToast }) {
                 L’alerte prévient les donneurs compatibles dans un rayon
                 d’environ 15 km, ou à défaut dans la même ville.
               </div>
+
+              {needsAccount ? (
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="requesterName" className="field-label">
+                      Votre nom{" "}
+                      <span className="font-normal text-primary-strong">(requis)</span>
+                    </label>
+                    <input
+                      id="requesterName"
+                      className="field-input"
+                      value={form.requesterName}
+                      onChange={update("requesterName")}
+                      placeholder="Ex. Awa K."
+                      autoComplete="name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="phone" className="field-label">
+                      Téléphone{" "}
+                      <span className="font-normal text-primary-strong">(requis)</span>
+                    </label>
+                    <input
+                      id="phone"
+                      type="tel"
+                      inputMode="tel"
+                      className="field-input"
+                      value={form.phone}
+                      onChange={update("phone")}
+                      placeholder="+229 XX XX XX XX XX"
+                      autoComplete="username"
+                      required
+                    />
+                    <p className="field-hint">
+                      Sert d’identifiant de connexion pour suivre vos demandes.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="field-label">
+                      Mot de passe{" "}
+                      <span className="font-normal text-primary-strong">
+                        (8 caractères min.)
+                      </span>
+                    </label>
+                    <input
+                      id="password"
+                      type="password"
+                      className="field-input"
+                      value={form.password}
+                      onChange={update("password")}
+                      autoComplete="new-password"
+                      minLength={8}
+                      required
+                    />
+                  </div>
+                </>
+              ) : null}
 
               <div className="space-y-2">
                 <label htmlFor="neededGroup" className="field-label">
@@ -244,7 +288,9 @@ export default function EmergencyAlert({ onToast }) {
                   disabled={!canSubmit}
                   className="w-full"
                 >
-                  Envoyer l’alerte
+                  {needsAccount
+                    ? "Créer mon compte et envoyer l’alerte"
+                    : "Envoyer l’alerte"}
                 </SubmitButton>
                 {!canSubmit ? (
                   <p className="field-hint">
@@ -262,14 +308,13 @@ export default function EmergencyAlert({ onToast }) {
 }
 
 /**
- * Orchestrated confirmation for a created alert (plan lot 2, #7):
- * a circled check pops in, the public reference follows ~560ms later, then the
- * compatible donors cascade in 110ms apart. Reduced-motion collapses every
- * delay to zero via the scoped CSS on `.reveal-in`.
+ * Orchestrated confirmation for a created alert: a circled check pops in, the
+ * public reference follows ~560ms later, then the compatible donors cascade in
+ * 110ms apart. Reduced-motion collapses every delay via the scoped CSS on
+ * `.reveal-in`. Read-only — donors confirm from their own "Demandes en cours".
  */
-function AlertConfirmation({ result, confirmingId, onConfirm, onReset }) {
+function AlertConfirmation({ result, onReset }) {
   const candidates = result.matching?.candidates ?? [];
-  const fulfilled = result.status === "fulfilled";
 
   return (
     <div className="card space-y-5 border-primary/20">
@@ -354,26 +399,14 @@ function AlertConfirmation({ result, confirmingId, onConfirm, onReset }) {
           {candidates.map((candidate, index) => (
             <li
               key={candidate.donor_id}
-              className="reveal-in flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-light px-4 py-3"
+              className="reveal-in rounded-2xl bg-light px-4 py-3 text-sm text-secondary"
               style={{ animationDelay: `${900 + index * 110}ms` }}
             >
-              <span className="text-sm text-secondary">
-                <strong className="font-semibold">{candidate.display_name}</strong>
-                {" · "}
-                {candidate.city}
-                {" · "}
-                {candidate.match_method === "gps" ? "à proximité" : "même ville"}
-              </span>
-              <button
-                type="button"
-                className="btn-secondary px-4 py-2 text-sm"
-                disabled={Boolean(confirmingId) || fulfilled}
-                onClick={() => onConfirm(candidate.donor_id)}
-              >
-                {confirmingId === candidate.donor_id
-                  ? "Confirmation…"
-                  : "Confirmer le don"}
-              </button>
+              <strong className="font-semibold">{candidate.display_name}</strong>
+              {" · "}
+              {candidate.city}
+              {" · "}
+              {candidate.match_method === "gps" ? "à proximité" : "même ville"}
             </li>
           ))}
         </ul>
@@ -391,8 +424,8 @@ function AlertConfirmation({ result, confirmingId, onConfirm, onReset }) {
         className="reveal-in flex flex-col gap-3 sm:flex-row"
         style={{ animationDelay: `${900 + candidates.length * 110 + 120}ms` }}
       >
-        <Link to={`/suivi/${result.public_ref}`} className="btn-primary">
-          Voir le suivi
+        <Link to="/mes-demandes" className="btn-primary">
+          Voir mes demandes
         </Link>
         <button type="button" className="btn-secondary" onClick={onReset}>
           Nouvelle alerte
