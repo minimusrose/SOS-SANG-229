@@ -1,4 +1,4 @@
-/** API urgency statuses → French labels (Djooli pills). */
+/** Statuts d'une demande → libellés affichés. */
 
 export const STATUS_META = {
   open: {
@@ -6,7 +6,7 @@ export const STATUS_META = {
     className: "bg-primary/10 text-primary-strong",
   },
   alerting: {
-    label: "En matching",
+    label: "En cours",
     className: "bg-light text-muted",
   },
   fulfilled: {
