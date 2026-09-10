@@ -130,7 +130,7 @@ export default function EmergencyAlert({ onToast }) {
 
         {result ? (
           <div className="card space-y-4 border-primary/20">
-            <p className="text-xs font-bold uppercase tracking-wide text-primary">
+            <p className="text-xs font-bold uppercase tracking-wide text-primary-strong">
               Alerte créée
             </p>
             <p className="font-mono text-lg font-extrabold text-secondary">
@@ -138,7 +138,7 @@ export default function EmergencyAlert({ onToast }) {
             </p>
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                   Donneurs alertés
                 </dt>
                 <dd className="mt-0.5 text-2xl font-extrabold text-primary">
@@ -146,7 +146,7 @@ export default function EmergencyAlert({ onToast }) {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                   Confirmations
                 </dt>
                 <dd className="mt-0.5 text-2xl font-extrabold text-secondary">
@@ -154,7 +154,7 @@ export default function EmergencyAlert({ onToast }) {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                   SMS simulés
                 </dt>
                 <dd className="mt-0.5 text-2xl font-extrabold text-secondary">
@@ -162,7 +162,7 @@ export default function EmergencyAlert({ onToast }) {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                   Canal
                 </dt>
                 <dd className="mt-0.5 font-mono text-sm text-secondary">
@@ -170,7 +170,7 @@ export default function EmergencyAlert({ onToast }) {
                 </dd>
               </div>
               <div className="col-span-2">
-                <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                <dt className="text-xs font-bold uppercase tracking-wide text-muted">
                   Établissement
                 </dt>
                 <dd className="mt-0.5 text-secondary">
@@ -213,7 +213,7 @@ export default function EmergencyAlert({ onToast }) {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-accent">
+              <p className="text-sm text-muted">
                 Aucun donneur compatible pour l’instant. Inscrivez un profil
                 fictif dans la même zone, puis relancez une alerte.
               </p>
@@ -242,7 +242,7 @@ export default function EmergencyAlert({ onToast }) {
 
           <div className="space-y-2">
             <label htmlFor="neededGroup" className="field-label">
-              Groupe demandé <span className="font-normal text-accent">(requis)</span>
+              Groupe demandé <span className="font-normal text-primary-strong">(requis)</span>
             </label>
             <BloodGroupSelect
               id="neededGroup"
@@ -255,7 +255,7 @@ export default function EmergencyAlert({ onToast }) {
           <div className="space-y-2">
             <label htmlFor="patientName" className="field-label">
               Nom du patient (démo){" "}
-              <span className="font-normal text-accent">(requis)</span>
+              <span className="font-normal text-primary-strong">(requis)</span>
             </label>
             <input
               id="patientName"
@@ -274,7 +274,7 @@ export default function EmergencyAlert({ onToast }) {
           <div className="space-y-2">
             <label htmlFor="hospital" className="field-label">
               Hôpital reconnu{" "}
-              <span className="font-normal text-accent">
+              <span className="font-normal text-primary-strong">
                 (liste officielle, requis)
               </span>
             </label>

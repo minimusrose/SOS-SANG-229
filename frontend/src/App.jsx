@@ -17,8 +17,8 @@ const links = [
 
 function navClass({ isActive }) {
   return isActive
-    ? "font-bold text-primary"
-    : "font-medium text-secondary/80 hover:text-primary";
+    ? "font-bold text-primary-strong"
+    : "font-medium text-secondary/80 hover:text-primary-strong";
 }
 
 export default function App() {
@@ -42,14 +42,14 @@ export default function App() {
               <span className="block truncate text-base font-extrabold tracking-tight text-secondary">
                 SOS Sang 229
               </span>
-              <span className="block text-xs font-medium text-accent">
+              <span className="block text-xs font-medium text-muted">
                 Démo locale · Hackathon Cursor Bénin
               </span>
             </span>
           </NavLink>
           <button
             type="button"
-            className="rounded-full border-2 border-primary px-4 py-1.5 text-sm font-semibold text-primary sm:hidden"
+            className="rounded-full border-2 border-primary px-4 py-1.5 text-sm font-semibold text-primary-strong sm:hidden"
             aria-expanded={menuOpen}
             aria-controls="nav-principale"
             onClick={() => setMenuOpen((open) => !open)}
@@ -118,7 +118,7 @@ export default function App() {
                 end={link.end}
                 className={({ isActive }) =>
                   `flex flex-col items-center px-1 py-2.5 text-[11px] font-bold ${
-                    isActive ? "text-primary" : "text-accent"
+                    isActive ? "text-primary-strong" : "text-muted"
                   }`
                 }
               >

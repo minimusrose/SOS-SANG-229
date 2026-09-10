@@ -3,11 +3,11 @@
 export const STATUS_META = {
   open: {
     label: "Ouverte",
-    className: "bg-primary/10 text-primary",
+    className: "bg-primary/10 text-primary-strong",
   },
   alerting: {
     label: "En matching",
-    className: "bg-light text-accent",
+    className: "bg-light text-muted",
   },
   fulfilled: {
     label: "Pourvue",
@@ -15,7 +15,7 @@ export const STATUS_META = {
   },
   cancelled: {
     label: "Annulée",
-    className: "bg-light text-accent",
+    className: "bg-light text-muted",
   },
 };
 
