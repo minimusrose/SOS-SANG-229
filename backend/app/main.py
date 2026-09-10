@@ -14,7 +14,7 @@ app = FastAPI(
         "(sans téléphone ni GPS)\n"
         "- `POST /donors` — inscription donneur (téléphone / GPS omis en réponse)\n"
         "- `POST /alerts` — créer une urgence (`hospital_id` reconnu obligatoire), "
-        "lancer le matching, enregistrer `alerted_donors_count`\n"
+        "lancer le matching, simuler un SMS par donneur (`SMS_MODE=simulate`)\n"
         "- `POST /donations` — confirmer un don\n"
         "- `GET /requests` et `GET /requests/{public_ref}` — suivi (compteurs / statut, "
         "sans numéro de téléphone)\n\n"
@@ -24,7 +24,9 @@ app = FastAPI(
         "Si l’hôpital et le donneur ont un point GPS : `ST_DWithin` (geography, mètres). "
         "Sinon : même ville (comparaison insensible à la casse). "
         "Groupes compatibles ABO/Rh. Donneurs `is_available=true` uniquement.\n\n"
-        "Twilio / SMS réel : non branché (stub). JWT : non requis pour ce MVP. "
+        "SMS : mode `simulate` par défaut (aucun appel Twilio). "
+        "Le mode live reste off sauf `SMS_MODE=live` et identifiants présents "
+        "(chemin stub, pas d’HTTP). JWT : non requis pour ce MVP. "
         "Ne jamais logger téléphone, GPS ou groupe sanguin en clair."
     ),
     version="0.2.0",

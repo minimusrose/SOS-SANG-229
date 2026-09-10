@@ -47,7 +47,7 @@ Build : `npm run build`.
 | `/suivi` | Liste des demandes | `GET /requests` |
 | `/suivi/:publicRef` | Détail + confirmation de don | `GET /requests/{public_ref}`, `POST /donations` |
 
-Toasts succès / erreur. Aucun SMS réel. Aucune géolocalisation navigateur. Ne pas saisir de données personnelles réelles.
+Toasts succès / erreur. Après une alerte, le résumé affiche les SMS **simulés** (aucun envoi réel, aucun numéro). Aucune géolocalisation navigateur. Ne pas saisir de données personnelles réelles.
 
 ## Plan de test
 

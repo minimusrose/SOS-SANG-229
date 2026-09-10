@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.donation import DonationConfirmation
     from app.models.hospital import Hospital
     from app.models.match import UrgencyMatch
+    from app.models.notification import SmsNotification
 
 _SENSITIVE = "SENSITIVE — never log in cleartext."
 
@@ -94,5 +95,8 @@ class UrgencyRequest(TimestampMixin, Base):
         back_populates="urgency_request",
     )
     matches: Mapped[list["UrgencyMatch"]] = relationship(
+        back_populates="urgency_request",
+    )
+    sms_notifications: Mapped[list["SmsNotification"]] = relationship(
         back_populates="urgency_request",
     )

@@ -16,7 +16,7 @@ const steps = [
   {
     n: "02",
     title: "Trouver des réponses",
-    body: "Le matching SMS arrivera plus tard. Ici, on montre le parcours : clair, calme, compréhensible.",
+    body: "Après le matching, un SMS est simulé pour chaque donneur compatible. Aucun envoi réel.",
   },
   {
     n: "03",
@@ -134,8 +134,8 @@ export default function Home() {
           <p className="mt-2 text-base leading-7 text-accent">
             Groupe sanguin, téléphone et localisation sont sensibles. Utilisez
             uniquement des valeurs fictives (+22900000001, Zone Demo). L’API
-            n’expose pas les numéros. Aucun SMS réel ni géolocalisation du
-            navigateur.
+            n’expose pas les numéros. Les SMS sont simulés (aucun Twilio). Pas
+            de géolocalisation du navigateur.
           </p>
         </div>
       </section>

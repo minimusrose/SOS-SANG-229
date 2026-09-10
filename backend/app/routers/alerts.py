@@ -11,13 +11,13 @@ from app.db import get_db
 from app.enums import UrgencyStatus
 from app.matching import find_compatible_donors
 from app.models import Hospital, UrgencyMatch, UrgencyRequest
-from app.notifications import default_notifier
+from app.notifications import empty_notification_summary, notify_matched_donors
 from app.refs import new_public_ref
 from app.rules import UnrecognizedHospitalError, require_recognized_hospital
 from app.schemas.urgency import (
     MatchedDonorPublic,
     MatchingSummary,
-    NotificationStub,
+    NotificationSummary,
     UrgencyCreateResponse,
     UrgencyRequestCreate,
 )
@@ -44,7 +44,8 @@ def _http_unrecognized() -> HTTPException:
         "Requires a recognized `hospital_id`. Runs PostGIS matching "
         "(GPS within MATCH_RADIUS_METERS, default 15 km, else same city), "
         "stores `alerted_donors_count`, and links candidates without phones. "
-        "Twilio is not called."
+        "Each match triggers `send_urgency_sms` in SMS_MODE=simulate by default "
+        "(no Twilio network). Live stays off unless SMS_MODE=live and credentials."
     ),
 )
 def create_alert(
@@ -95,6 +96,17 @@ def create_alert(
                     match_method=match.method,
                 )
             )
+        if matches:
+            notification = notify_matched_donors(
+                db,
+                urgency_id=urgency.id,
+                matches=matches,
+                public_ref=urgency.public_ref,
+                hospital_name=hospital.name,
+                blood_group_needed=payload.blood_group_needed.value,
+            )
+        else:
+            notification = empty_notification_summary()
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -112,7 +124,6 @@ def create_alert(
         ) from None
 
     db.refresh(urgency)
-    default_notifier().notify_matched_donors(donor_count=len(matches))
 
     candidates = [
         MatchedDonorPublic(
@@ -143,5 +154,14 @@ def create_alert(
             match_count=len(candidates),
             candidates=candidates,
         ),
-        notification=NotificationStub(),
+        notification=NotificationSummary(
+            channel=notification.channel,
+            mode=notification.mode,
+            implemented=notification.implemented,
+            sent=notification.sent,
+            simulated_count=notification.simulated_count,
+            attempted_count=notification.attempted_count,
+            failed_count=notification.failed_count,
+            live_enabled=notification.live_enabled,
+        ),
     )

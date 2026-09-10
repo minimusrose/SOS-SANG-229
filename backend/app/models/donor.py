@@ -14,6 +14,7 @@ from app.models.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.models.donation import DonationConfirmation
     from app.models.match import UrgencyMatch
+    from app.models.notification import SmsNotification
 
 _SENSITIVE = "SENSITIVE — never log in cleartext."
 
@@ -65,5 +66,8 @@ class Donor(TimestampMixin, Base):
         back_populates="donor",
     )
     urgency_matches: Mapped[list["UrgencyMatch"]] = relationship(
+        back_populates="donor",
+    )
+    sms_notifications: Mapped[list["SmsNotification"]] = relationship(
         back_populates="donor",
     )
