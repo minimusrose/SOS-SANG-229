@@ -180,7 +180,7 @@ export default function Home() {
               <BeninMap className="mx-auto max-h-[26rem]" />
               <p className="mt-3 flex items-center justify-center gap-2 font-mono text-xs text-muted">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                Cotonou · alerte en cours · 4 donneurs prévenus
+                Cotonou · alerte en cours · 2 donneurs prévenus
               </p>
             </div>
           </div>

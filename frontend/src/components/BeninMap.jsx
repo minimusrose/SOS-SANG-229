@@ -17,19 +17,21 @@ const COUNTRY =
 const FACILITY = { x: 158, y: 366 };
 
 // Approx. positions of real towns inside the outline.
+// success = compatible AND close to the facility → alerted; primary = other
+// donors in the base, too far to be notified for this urgency.
 const DONORS = [
-  { x: 170, y: 359, tone: "primary" }, // Porto-Novo
-  { x: 137, y: 319, tone: "success" }, // Bohicon (a répondu)
+  { x: 172, y: 344, tone: "success" }, // Porto-Novo — proche, prévenu
+  { x: 137, y: 319, tone: "success" }, // Bohicon — proche, prévenu
   { x: 162, y: 269, tone: "primary" }, // Savè
   { x: 170, y: 191, tone: "primary" }, // Parakou
   { x: 114, y: 170, tone: "primary" }, // Djougou
   { x: 104, y: 134, tone: "primary" }, // Natitingou
-  { x: 189, y: 85, tone: "success" }, // Kandi (a répondu)
+  { x: 189, y: 85, tone: "primary" }, // Kandi
 ];
 
 const LINKS = [
   [137, 319],
-  [170, 359],
+  [172, 344],
 ];
 
 export default function BeninMap({ className = "" }) {
