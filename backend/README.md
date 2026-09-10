@@ -32,6 +32,7 @@ L’extension PostGIS est activée par la première migration Alembic.
    DATABASE_URL=postgresql://sos_sang:changeme_local_only@127.0.0.1:5432/sos_sang_229
    MATCH_RADIUS_METERS=15000
    SMS_MODE=simulate
+   FRONTEND_ORIGIN=http://localhost:5173
    ```
 
    Utiliser uniquement des identifiants locaux fictifs. Ne pas y mettre de secrets de production.
@@ -180,7 +181,7 @@ Une urgence ne peut cibler **que** un établissement avec `hospitals.is_recogniz
 ```
 app/
   main.py           # application FastAPI
-  config.py         # DATABASE_URL + MATCH_RADIUS_METERS + SMS_MODE / TWILIO_*
+  config.py         # DATABASE_URL + FRONTEND_ORIGIN (CORS) + SMS_MODE / TWILIO_*
   matching.py       # compatibilité + PostGIS / repli ville
   notifications.py  # SMS simulate (live stub gated)
   routers/          # health, hospitals, donors, alerts, donations, tracking
@@ -188,10 +189,21 @@ app/
   schemas/          # Pydantic create/read/public
 alembic/            # migrations
 scripts/seed_demo.py
+start.sh            # Railway: alembic upgrade head + uvicorn
+Dockerfile
+railway.toml
 tests/              # pytest
 ```
 
 JWT n’est pas implémenté. Twilio live n’est pas appelé en défaut/dev.
+
+## Déploiement Railway
+
+Image : `backend/Dockerfile` (Python 3.12). Entrée : `start.sh` (`alembic upgrade head` puis uvicorn sur `$PORT`).
+
+**Root Directory Railway = `backend`.** Config : `railway.toml`. La base doit être **PostGIS** (pas un Postgres nu). CORS : `FRONTEND_ORIGIN` + localhost Vite.
+
+Checklist complète : [README racine — Déploiement](../README.md#déploiement-railway-api--vercel-front).
 
 ## SMS
 

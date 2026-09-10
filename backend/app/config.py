@@ -12,6 +12,33 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 SMS_MODE_SIMULATE = "simulate"
 SMS_MODE_LIVE = "live"
 
+# Always allowed for local Vite (`npm run dev`). Production origins come from
+# FRONTEND_ORIGIN (comma-separated), e.g. the Vercel URL.
+LOCAL_FRONTEND_ORIGINS = (
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+)
+
+
+def parse_frontend_origins(raw: str) -> list[str]:
+    """Split FRONTEND_ORIGIN on commas; strip whitespace and trailing slashes."""
+    origins: list[str] = []
+    seen: set[str] = set()
+    for part in (raw or "").split(","):
+        origin = part.strip().rstrip("/")
+        if origin and origin not in seen:
+            seen.add(origin)
+            origins.append(origin)
+    return origins
+
+
+def normalize_database_url(raw: str) -> str:
+    """Accept Railway ``postgres://`` URLs; SQLAlchemy wants ``postgresql://``."""
+    url = (raw or "").strip()
+    if url.startswith("postgres://"):
+        return "postgresql://" + url[len("postgres://") :]
+    return url
+
 
 class Settings(BaseSettings):
     """Runtime config. DATABASE_URL and Twilio secrets must not be hardcoded."""
@@ -21,6 +48,11 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    app_env: str = "development"
+    # Comma-separated browser origins for CORS (Vercel + extras). Localhost
+    # Vite origins are always included — see cors_allow_origins().
+    frontend_origin: str = "http://localhost:5173"
 
     database_url: str = ""
     # GPS matching radius (meters). City fallback is used when GPS is missing.
@@ -32,6 +64,24 @@ class Settings(BaseSettings):
     twilio_account_sid: str = ""
     twilio_auth_token: SecretStr = SecretStr("")
     twilio_from_number: str = ""
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def coerce_database_url(cls, value: object) -> str:
+        if value is None:
+            return ""
+        return normalize_database_url(str(value))
+
+    def cors_allow_origins(self) -> list[str]:
+        """Local Vite origins plus FRONTEND_ORIGIN (production Vercel URL)."""
+        extras = parse_frontend_origins(self.frontend_origin)
+        result: list[str] = []
+        seen: set[str] = set()
+        for origin in (*LOCAL_FRONTEND_ORIGINS, *extras):
+            if origin not in seen:
+                seen.add(origin)
+                result.append(origin)
+        return result
 
     @field_validator("sms_mode", mode="before")
     @classmethod
