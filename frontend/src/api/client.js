@@ -48,10 +48,7 @@ export async function apiRequest(path, options = {}) {
       body,
     });
   } catch {
-    throw new ApiError(
-      "API injoignable. Lancez uvicorn (127.0.0.1:8000) puis réessayez.",
-      0,
-    );
+    throw new ApiError("Service indisponible. Réessayez dans un instant.", 0);
   }
 
   if (response.status === 204) {

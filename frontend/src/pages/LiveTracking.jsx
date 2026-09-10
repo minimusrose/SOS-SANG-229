@@ -5,7 +5,9 @@ import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { RevealGroup } from "../components/Reveal.jsx";
+import { SkeletonCard } from "../components/Skeleton.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
+import SubmitButton from "../components/SubmitButton.jsx";
 import { STATUS_FILTERS, STATUS_META, formatDateTime } from "../lib/status.js";
 
 export default function LiveTracking({ onToast }) {
@@ -121,9 +123,12 @@ export default function LiveTracking({ onToast }) {
               placeholder="REQ-XXXXXXXX"
               autoComplete="off"
             />
-            <button type="submit" className="btn-primary sm:w-auto">
+            <SubmitButton
+              pending={detailState === "loading"}
+              className="sm:w-auto"
+            >
               Ouvrir
-            </button>
+            </SubmitButton>
           </div>
         </form>
 
@@ -270,13 +275,28 @@ export default function LiveTracking({ onToast }) {
           ) : null}
         </div>
 
-        {listState === "error" ? (
+        {listState === "loading" && rows.length === 0 ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        ) : listState === "error" ? (
           <div className="card text-center">
-            <p className="text-lg font-extrabold text-secondary">API indisponible</p>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Lancez uvicorn puis actualisez. Aucune ligne démo n’est affichée
-              à la place.
+            <p className="text-lg font-extrabold text-secondary">
+              Service indisponible
             </p>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Réessayez dans un instant. Aucune ligne démo n’est affichée à la
+              place.
+            </p>
+            <button
+              type="button"
+              className="btn-secondary mt-5"
+              onClick={loadList}
+            >
+              Réessayer
+            </button>
           </div>
         ) : visibleRows.length === 0 ? (
           <div className="card text-center">

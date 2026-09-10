@@ -44,15 +44,11 @@ export default {
           "60%": { opacity: "1", transform: "scale(1.08)" },
           "100%": { opacity: "1", transform: "scale(1)" },
         },
-        "draw-check": {
-          to: { "stroke-dashoffset": "0" },
-        },
       },
       animation: {
         shimmer: "shimmer 1.35s infinite",
         "toast-in": "toast-in 380ms cubic-bezier(.22, 1, .36, 1) both",
         pop: "pop 300ms cubic-bezier(.34, 1.56, .64, 1) both",
-        "draw-check": "draw-check 420ms cubic-bezier(.22, 1, .36, 1) forwards",
       },
     },
   },

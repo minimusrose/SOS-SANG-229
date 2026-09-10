@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import BrandMark from "./components/BrandMark.jsx";
 import Toast from "./components/Toast.jsx";
 import useToast from "./hooks/useToast.js";
@@ -24,6 +24,13 @@ function navClass({ isActive }) {
 export default function App() {
   const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // Never carry a toast across a route change (plan lot 2, #9).
+  const dismissToast = toast.dismiss;
+  useEffect(() => {
+    dismissToast();
+  }, [location.pathname, dismissToast]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-white">

@@ -4,6 +4,7 @@ import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import SubmitButton from "../components/SubmitButton.jsx";
 import { DEMO_CITIES } from "../data/demo.js";
 
 const INITIAL = {
@@ -17,6 +18,7 @@ const INITIAL = {
 export default function DonorRegistration({ onToast }) {
   const [form, setForm] = useState(INITIAL);
   const [submitting, setSubmitting] = useState(false);
+  const [justOk, setJustOk] = useState(false);
   const [result, setResult] = useState(null);
 
   const canSubmit = Boolean(
@@ -35,6 +37,7 @@ export default function DonorRegistration({ onToast }) {
     event.preventDefault();
     if (!canSubmit || submitting) return;
 
+    setJustOk(false);
     setSubmitting(true);
     try {
       const created = await api.createDonor({
@@ -46,6 +49,7 @@ export default function DonorRegistration({ onToast }) {
       });
       setResult(created);
       setForm(INITIAL);
+      setJustOk(true);
       onToast(
         `Profil enregistré pour ${created.display_name}. Aucun SMS envoyé.`,
       );
@@ -166,13 +170,14 @@ export default function DonorRegistration({ onToast }) {
           </fieldset>
 
           <div className="space-y-2">
-            <button
-              type="submit"
-              className="btn-primary w-full"
-              disabled={!canSubmit || submitting}
+            <SubmitButton
+              pending={submitting}
+              success={justOk}
+              disabled={!canSubmit}
+              className="w-full"
             >
-              {submitting ? "Enregistrement…" : "Enregistrer le profil"}
-            </button>
+              Enregistrer le profil
+            </SubmitButton>
             {!canSubmit ? (
               <p className="field-hint">
                 Le bouton s’active lorsque le nom, le groupe, le téléphone fictif
