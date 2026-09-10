@@ -242,7 +242,23 @@ def test_create_urgency_matches_compatible_city_donor(
     assert body["matching"]["candidates"][0]["match_method"] == "city"
     assert "phone" not in body["matching"]["candidates"][0]
     assert body["notification"]["sent"] is False
+    assert body["notification"]["implemented"] is True
+    assert body["notification"]["channel"] == "sms_simulate"
+    assert body["notification"]["mode"] == "simulate"
+    assert body["notification"]["simulated_count"] == 1
+    assert body["notification"]["attempted_count"] == 1
+    assert body["notification"]["failed_count"] == 0
+    assert body["notification"]["live_enabled"] is False
     assert "+229" not in response.text
+
+    from app.models import SmsNotification
+
+    stored = db_session.query(SmsNotification).all()
+    assert len(stored) == 1
+    assert stored[0].status == "simulated"
+    assert stored[0].channel == "sms_simulate"
+    assert stored[0].donor_id == nearby.id
+    assert "phone" not in SmsNotification.__table__.c
 
 
 def test_tracking_and_confirm_donation(

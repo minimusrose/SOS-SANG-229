@@ -5,6 +5,7 @@ from app.schemas import (
     DonorPublic,
     HospitalPublic,
     MatchedDonorPublic,
+    NotificationSummary,
     UrgencySummary,
     UrgencyTrackingRead,
 )
@@ -15,6 +16,7 @@ def test_public_schemas_omit_phone_and_location() -> None:
         DonorPublic,
         HospitalPublic,
         MatchedDonorPublic,
+        NotificationSummary,
         UrgencySummary,
         UrgencyTrackingRead,
     ):
@@ -24,6 +26,7 @@ def test_public_schemas_omit_phone_and_location() -> None:
         assert "location" not in fields
 
 
-def test_mask_phone_keeps_last_two_digits_only() -> None:
-    assert mask_phone("+22900000099") == "***99"
+def test_mask_phone_keeps_last_four_digits_only() -> None:
+    assert mask_phone("+22900000001") == "***0001"
+    assert mask_phone("+22900000099") == "***0099"
     assert mask_phone("12") == "***12"

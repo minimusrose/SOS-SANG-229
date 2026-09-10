@@ -4,7 +4,7 @@ import unittest
 from uuid import uuid4
 
 from app.enums import BloodGroup, DonationStatus
-from app.models import Base, Donor, Hospital, UrgencyRequest
+from app.models import Base, Donor, Hospital, SmsNotification, UrgencyRequest
 from app.rules import UnrecognizedHospitalError, require_recognized_hospital
 from app.schemas import (
     DonationConfirmationCreate,
@@ -24,6 +24,7 @@ class ModelMetadataTests(unittest.TestCase):
                 "urgency_requests",
                 "donation_confirmations",
                 "urgency_matches",
+                "sms_notifications",
             },
         )
 
@@ -45,6 +46,14 @@ class ModelMetadataTests(unittest.TestCase):
         column = Hospital.__table__.c.is_recognized
         self.assertFalse(column.nullable)
         self.assertEqual(str(column.server_default.arg), "false")
+
+    def test_sms_notifications_omit_pii_columns(self) -> None:
+        columns = set(SmsNotification.__table__.c.keys())
+        self.assertNotIn("phone", columns)
+        self.assertNotIn("to_phone", columns)
+        self.assertNotIn("body", columns)
+        self.assertNotIn("message", columns)
+        self.assertNotIn("blood_group", columns)
 
     def test_urgency_uses_hospital_fk_only(self) -> None:
         columns = set(UrgencyRequest.__table__.c.keys())

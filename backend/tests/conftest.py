@@ -10,6 +10,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.config import get_settings
 from app.db import get_db
 from app.main import app
 from app.models import Base
@@ -49,6 +50,18 @@ def _strip_postgres_only_defaults() -> None:
 
 
 _strip_postgres_only_defaults()
+
+
+@pytest.fixture(autouse=True)
+def _sms_simulate_defaults(monkeypatch: pytest.MonkeyPatch):
+    """Keep tests off the live Twilio path even if a local .env has leftovers."""
+    monkeypatch.setenv("SMS_MODE", "simulate")
+    monkeypatch.setenv("TWILIO_ACCOUNT_SID", "")
+    monkeypatch.setenv("TWILIO_AUTH_TOKEN", "")
+    monkeypatch.setenv("TWILIO_FROM_NUMBER", "")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture

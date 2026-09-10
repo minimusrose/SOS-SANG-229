@@ -2,7 +2,7 @@
 
 Plateforme MVP d’alerte et de matching donneur de sang pour le **Hackathon Cursor Bénin** (Bénin).
 
-En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer une alerte. Le système rapproche cette demande des donneurs compatibles à proximité (SMS prévu plus tard). Le frontend React est branché à l’API FastAPI en local/dev. Twilio n’est **pas** appelé.
+En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer une alerte. Le système rapproche cette demande des donneurs compatibles à proximité, puis **simule** un SMS par donneur (`SMS_MODE=simulate`, aucun appel Twilio). Le frontend React est branché à l’API FastAPI en local/dev.
 
 ## Stack
 
@@ -11,7 +11,7 @@ En cas d’urgence transfusionnelle, un établissement ou un proche peut lancer 
 | Frontend | React (JavaScript) + Tailwind CSS + Vite | Branché à l’API (`VITE_API_BASE_URL`) |
 | Backend | Python FastAPI | Endpoints métier + matching PostGIS |
 | Base | PostgreSQL + PostGIS | Docker Compose + migrations Alembic |
-| SMS | Twilio | Prévu (variables placeholder) |
+| SMS | Twilio | Simulé par défaut (`SMS_MODE=simulate`) |
 | Auth | JWT | Prévu (variables placeholder) |
 
 ## Structure
@@ -77,13 +77,33 @@ Téléphone, GPS et groupe sanguin sont sensibles — ne jamais les logger en cl
 
 1. `GET /health` → `{ "status": "ok" }`.
 2. Inscription donneur : nom `Donneur Demo`, groupe `O+`, téléphone `+22900000001`, ville `Zone Demo` → toast succès, pas de téléphone affiché.
-3. Alerte : patient `Patient Demo`, hôpital reconnu chargé depuis l’API, groupe `O+` → `public_ref` + nombre de donneurs alertés.
+3. Alerte : patient `Patient Demo`, hôpital reconnu chargé depuis l’API, groupe `O+` → `public_ref` + nombre de donneurs + résumé SMS simulé (`simulated_count`, aucun envoi réel).
 4. Suivi : la nouvelle référence apparaît ; le détail montre groupe / patient / compteurs.
 5. Confirmer le don depuis l’alerte ou le suivi → compteur confirmé, statut pourvue si unités atteintes.
 6. État vide : filtre sans lignes, ou API arrêtée → message d’erreur, pas de stubs `REQ-DEMO-*`.
 7. `cd frontend && npm run build` OK.
 
-Hors scope : SMS Twilio réel, JWT, déploiement Vercel.
+Hors scope : achat de numéros Twilio, envoi SMS réel, JWT, déploiement Vercel.
+
+## SMS : simulate vs live
+
+| Mode | Quand | Comportement |
+| --- | --- | --- |
+| `simulate` (défaut) | `SMS_MODE` absent, vide, ou `simulate` | Aucun appel réseau. Un succès simulé est enregistré par donneur matché. |
+| `live` | `SMS_MODE=live` **et** `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` + `TWILIO_FROM_NUMBER` tous renseignés | Chemin live sélectionné. Dans ce MVP le send reste un stub local (pas d’HTTP Twilio). |
+
+Si `SMS_MODE=live` sans identifiants, le mode effectif redevient `simulate`.
+
+Dans `.env` (jamais commité) :
+
+```
+SMS_MODE=simulate
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_FROM_NUMBER=
+```
+
+Ne pas logger un numéro complet, un GPS ou un groupe sanguin. Les logs SMS masquent le téléphone (`***0001`). Les lignes `sms_notifications` ne stockent ni téléphone ni corps de message.
 
 ## Branches et PR
 
@@ -93,5 +113,5 @@ Hors scope : SMS Twilio réel, JWT, déploiement Vercel.
 
 ## Sécurité
 
-Ne jamais committer de secrets (`.env`), ni de données réelles de donneurs (téléphone, GPS, groupe sanguin).
-Les jeux de démo doivent rester clairement fictifs. Ne pas logger téléphone, GPS ou groupe sanguin en clair.
+Ne jamais committer de secrets (`.env`, `TWILIO_AUTH_TOKEN`, etc.), ni de données réelles de donneurs (téléphone, GPS, groupe sanguin).
+Les jeux de démo doivent rester clairement fictifs. Ne pas logger téléphone, GPS ou groupe sanguin en clair. Le mode SMS live ne s’active pas tout seul.

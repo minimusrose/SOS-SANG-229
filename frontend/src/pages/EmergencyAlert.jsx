@@ -74,8 +74,9 @@ export default function EmergencyAlert({ onToast }) {
       setResult(created);
       setForm(INITIAL);
       const count = created.alerted_donors_count ?? 0;
+      const simulated = created.notification?.simulated_count ?? 0;
       onToast(
-        `Alerte ${created.public_ref} créée. ${count} donneur${count > 1 ? "s" : ""} alerté${count > 1 ? "s" : ""} (SMS stub, pas d’envoi réel).`,
+        `Alerte ${created.public_ref} créée. ${count} donneur${count > 1 ? "s" : ""} matché${count > 1 ? "s" : ""}, ${simulated} SMS simulé${simulated > 1 ? "s" : ""} (aucun envoi réel).`,
       );
     } catch (error) {
       onToast(error.message);
@@ -115,10 +116,11 @@ export default function EmergencyAlert({ onToast }) {
       <div className="space-y-8">
         <PageHeader kicker="Urgence" title="Alerte" highlight="don de sang">
           Déclarez un besoin fictif auprès d’un hôpital reconnu. Le matching
-          s’exécute côté API ; aucun SMS réel n’est envoyé.
+          s’exécute côté API, puis un SMS est simulé pour chaque donneur
+          (aucun envoi réel).
         </PageHeader>
 
-        <UrgencyBadge>Matching local · SMS stub</UrgencyBadge>
+        <UrgencyBadge>Matching local · SMS simulé</UrgencyBadge>
 
         <DemoBanner>
           Patient démo uniquement. L’établissement doit figurer sur la liste
@@ -151,6 +153,22 @@ export default function EmergencyAlert({ onToast }) {
                   {result.confirmed_donations_count ?? 0}
                 </dd>
               </div>
+              <div>
+                <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                  SMS simulés
+                </dt>
+                <dd className="mt-0.5 text-2xl font-extrabold text-secondary">
+                  {result.notification?.simulated_count ?? 0}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold uppercase tracking-wide text-accent">
+                  Canal
+                </dt>
+                <dd className="mt-0.5 font-mono text-sm text-secondary">
+                  {result.notification?.channel ?? "sms_simulate"}
+                </dd>
+              </div>
               <div className="col-span-2">
                 <dt className="text-xs font-bold uppercase tracking-wide text-accent">
                   Établissement
@@ -160,6 +178,13 @@ export default function EmergencyAlert({ onToast }) {
                 </dd>
               </div>
             </dl>
+            <p className="rounded-2xl bg-primary/5 px-4 py-3 text-sm leading-6 text-secondary">
+              Couche SMS active en mode{" "}
+              <strong className="font-semibold">
+                {result.notification?.mode ?? "simulate"}
+              </strong>
+              . Aucun appel Twilio, aucun numéro affiché.
+            </p>
             {result.matching?.candidates?.length ? (
               <ul className="space-y-2">
                 {result.matching.candidates.map((candidate) => (
@@ -210,8 +235,9 @@ export default function EmergencyAlert({ onToast }) {
 
         <form className="card space-y-6" onSubmit={handleSubmit} autoComplete="off">
           <div className="rounded-2xl bg-primary/5 px-5 py-4 text-sm leading-6 text-secondary">
-            Cette action crée une urgence et rapproche les donneurs compatibles
-            (rayon 15 km ou même ville). Twilio n’est pas appelé.
+            Cette action crée une urgence, rapproche les donneurs compatibles
+            (rayon 15 km ou même ville), puis simule un SMS par candidat.
+            Aucun SMS réel n’est envoyé (mode simulate).
           </div>
 
           <div className="space-y-2">

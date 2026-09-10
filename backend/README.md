@@ -31,6 +31,7 @@ L’extension PostGIS est activée par la première migration Alembic.
    POSTGRES_PASSWORD=changeme_local_only
    DATABASE_URL=postgresql://sos_sang:changeme_local_only@127.0.0.1:5432/sos_sang_229
    MATCH_RADIUS_METERS=15000
+   SMS_MODE=simulate
    ```
 
    Utiliser uniquement des identifiants locaux fictifs. Ne pas y mettre de secrets de production.
@@ -79,8 +80,12 @@ Service : `app/matching.py`.
 | Repli ville | Si le GPS manque d’un côté : même `city` (insensible à la casse) |
 | Persistance | `urgency_matches` (`match_method` = `gps` \| `city`) + `alerted_donors_count` |
 
-Aucun log de téléphone, GPS ou groupe sanguin. Twilio n’est **pas** appelé
-(`app/notifications.py` = stub / TODO simulation).
+Aucun log de téléphone, GPS ou groupe sanguin. Après le matching, `POST /alerts`
+appelle `send_urgency_sms` pour chaque donneur (`app/notifications.py`).
+Le défaut est `SMS_MODE=simulate` : succès simulé, **aucun** appel Twilio.
+Le mode live reste off sauf `SMS_MODE=live` **et** identifiants `TWILIO_*`
+présents (chemin stub, pas d’HTTP). Les outcomes sont persistés dans
+`sms_notifications` (sans téléphone ni corps de message).
 
 Une urgence **doit** cibler `hospitals.is_recognized = true` (`app.rules.require_recognized_hospital`
 + trigger Postgres `trg_urgency_recognized_hospital`).
@@ -158,6 +163,7 @@ repli Python (mêmes règles GPS / ville).
 | `hospitals` | Établissement | `contact_phone`, `location` |
 | `urgency_requests` | Urgence / alerte (`hospital_id` FK uniquement) | `blood_group_needed`, `patient_display_name` (démo uniquement) |
 | `urgency_matches` | Candidats matchés (`gps` / `city`) | — (pas de téléphone / GPS / groupe) |
+| `sms_notifications` | Résultat SMS par donneur (`simulate` / stub live) | — (pas de téléphone / corps / groupe) |
 | `donation_confirmations` | Confirmation de don | lie donneur + urgence (`confirmed_at`, `status`) |
 
 ### Hôpitaux reconnus
@@ -174,9 +180,9 @@ Une urgence ne peut cibler **que** un établissement avec `hospitals.is_recogniz
 ```
 app/
   main.py           # application FastAPI
-  config.py         # DATABASE_URL + MATCH_RADIUS_METERS
+  config.py         # DATABASE_URL + MATCH_RADIUS_METERS + SMS_MODE / TWILIO_*
   matching.py       # compatibilité + PostGIS / repli ville
-  notifications.py  # stub SMS (pas de Twilio)
+  notifications.py  # SMS simulate (live stub gated)
   routers/          # health, hospitals, donors, alerts, donations, tracking
   models/           # ORM SQLAlchemy + PostGIS
   schemas/          # Pydantic create/read/public
@@ -185,6 +191,19 @@ scripts/seed_demo.py
 tests/              # pytest
 ```
 
-JWT et Twilio ne sont pas implémentés. Les variables correspondantes figurent uniquement dans `.env.example`.
+JWT n’est pas implémenté. Twilio live n’est pas appelé en défaut/dev.
 
-**Ne jamais logger téléphone, GPS ou groupe sanguin en clair.**
+## SMS
+
+```
+SMS_MODE=simulate          # défaut — aucun réseau
+TWILIO_ACCOUNT_SID=        # placeholders vides uniquement
+TWILIO_AUTH_TOKEN=
+TWILIO_FROM_NUMBER=
+```
+
+- **simulate** : `send_urgency_sms` enregistre un succès simulé, masque le téléphone dans les logs (`***0001`), n’écrit pas le corps (groupe sanguin).
+- **live** : uniquement si `SMS_MODE=live` **et** les trois `TWILIO_*` sont non vides. Le send reste un stub local dans ce MVP (pas d’achat de numéro, pas d’HTTP). Sans identifiants, retour automatique à simulate.
+- Réponse `POST /alerts` : `notification.simulated_count`, `channel`, `mode`, `implemented`, `sent` (toujours `false` tant qu’aucun SMS réel n’est accepté).
+
+**Ne jamais logger téléphone, GPS ou groupe sanguin en clair. Ne jamais committer de secrets Twilio.**

@@ -68,17 +68,33 @@ class MatchingSummary(BaseModel):
     candidates: list[MatchedDonorPublic]
 
 
-class NotificationStub(BaseModel):
-    channel: str = "sms_stub"
-    sent: bool = False
-    implemented: bool = False
+class NotificationSummary(BaseModel):
+    """Aggregated SMS outcomes after matching. No phone numbers."""
+
+    channel: str = Field(
+        description="sms_simulate in default/dev. sms only if live is enabled.",
+        examples=["sms_simulate"],
+    )
+    mode: str = Field(description="Effective SMS_MODE (simulate unless live+creds).")
+    implemented: bool = Field(
+        description="True for the simulate layer. Live Twilio send is not implemented.",
+    )
+    sent: bool = Field(description="True only if a real SMS was accepted by Twilio.")
+    simulated_count: int = 0
+    attempted_count: int = 0
+    failed_count: int = 0
+    live_enabled: bool = False
+
+
+# Older name kept so imports do not break mid-refactor.
+NotificationStub = NotificationSummary
 
 
 class UrgencyCreateResponse(UrgencyRequestRead):
     hospital_name: str
     hospital_city: str
     matching: MatchingSummary
-    notification: NotificationStub
+    notification: NotificationSummary
 
 
 class UrgencySummary(BaseModel):
