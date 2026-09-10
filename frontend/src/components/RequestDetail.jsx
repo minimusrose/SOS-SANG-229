@@ -93,40 +93,23 @@ export default function RequestDetail({ publicRef, onClose }) {
               {detail.hospital_name} · {detail.hospital_city}
             </Field>
             <Field label="Zone">{detail.zone_label || "—"}</Field>
-            <Field label="Donneurs prévenus">
+            <Field label="Donneurs contactés">
               <span className="font-bold text-secondary">
                 {detail.alerted_donors_count}
               </span>
             </Field>
-            <Field label="Confirmés">
+            <Field label="Dons confirmés">
               <span className="font-bold text-secondary">
                 {detail.confirmed_donations_count} / {detail.units_needed}
               </span>
             </Field>
           </dl>
 
-          {detail.matched_donors?.length ? (
-            <ul className="space-y-2">
-              {detail.matched_donors.map((candidate) => (
-                <li
-                  key={candidate.donor_id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-light px-4 py-3 text-sm text-secondary"
-                >
-                  <span>
-                    <strong className="font-semibold">
-                      {candidate.display_name}
-                    </strong>
-                    {" · "}
-                    {candidate.city}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted">
-              Aucun donneur n’a encore répondu à cette demande.
-            </p>
-          )}
+          <p className="rounded-2xl bg-light px-4 py-3 text-sm leading-6 text-muted">
+            {detail.alerted_donors_count > 0
+              ? `${detail.alerted_donors_count} donneur${detail.alerted_donors_count > 1 ? "s" : ""} compatible${detail.alerted_donors_count > 1 ? "s" : ""} ${detail.alerted_donors_count > 1 ? "ont" : "a"} été contacté${detail.alerted_donors_count > 1 ? "s" : ""}. L’identité des donneurs n’est pas communiquée.`
+              : "Aucun donneur compatible n’a encore été trouvé. La demande reste ouverte."}
+          </p>
 
           <p className="text-xs text-muted">
             Mise à jour {formatDateTime(detail.updated_at)}

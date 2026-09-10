@@ -309,8 +309,10 @@ def test_create_urgency_matches_compatible_city_donor(
     assert body["alerted_donors_count"] == 1
     assert body["status"] == "alerting"
     assert body["matching"]["match_count"] == 1
-    assert body["matching"]["candidates"][0]["donor_id"] == str(nearby.id)
-    assert "phone" not in body["matching"]["candidates"][0]
+    # The requester gets a count only — never donor identities.
+    assert "candidates" not in body["matching"]
+    assert str(nearby.id) not in response.text
+    assert "Donneur Compatible" not in response.text
     assert body["notification"]["simulated_count"] == 1
     assert "+229" not in response.text
 
@@ -365,8 +367,10 @@ def test_create_urgency_matches_gps_donor_inside_radius(
     assert response.status_code == 201
     body = response.json()
     assert body["alerted_donors_count"] == 1
-    assert body["matching"]["candidates"][0]["donor_id"] == str(nearby.id)
-    assert body["matching"]["candidates"][0]["match_method"] == "gps"
+    assert body["matching"]["match_count"] == 1
+    assert "candidates" not in body["matching"]
+    assert str(nearby.id) not in response.text
+    assert str(far.id) not in response.text
     assert "+229" not in response.text
 
 

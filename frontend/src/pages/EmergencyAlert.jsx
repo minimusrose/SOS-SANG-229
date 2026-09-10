@@ -317,7 +317,7 @@ export default function EmergencyAlert({ onToast }) {
  * `.reveal-in`. Read-only — donors confirm from their own "Demandes en cours".
  */
 function AlertConfirmation({ result, onReset }) {
-  const candidates = result.matching?.candidates ?? [];
+  const contacted = result.matching?.match_count ?? result.alerted_donors_count ?? 0;
 
   return (
     <div className="card space-y-5 border-primary/20">
@@ -357,26 +357,18 @@ function AlertConfirmation({ result, onReset }) {
       >
         <div>
           <dt className="text-xs font-bold uppercase tracking-wide text-muted">
-            Donneurs alertés
+            Donneurs contactés
           </dt>
           <dd className="mt-0.5 text-2xl font-extrabold text-primary">
-            {result.alerted_donors_count ?? 0}
+            {contacted}
           </dd>
         </div>
         <div>
           <dt className="text-xs font-bold uppercase tracking-wide text-muted">
-            Confirmations
+            Dons confirmés
           </dt>
           <dd className="mt-0.5 text-2xl font-extrabold text-secondary">
             {result.confirmed_donations_count ?? 0}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-bold uppercase tracking-wide text-muted">
-            Messages envoyés
-          </dt>
-          <dd className="mt-0.5 text-2xl font-extrabold text-secondary">
-            {result.notification?.simulated_count ?? 0}
           </dd>
         </div>
         <div className="col-span-2">
@@ -393,39 +385,14 @@ function AlertConfirmation({ result, onReset }) {
         className="reveal-in rounded-2xl bg-primary/5 px-4 py-3 text-sm leading-6 text-secondary"
         style={{ animationDelay: "820ms" }}
       >
-        Les donneurs compatibles ont été prévenus par SMS. Aucun numéro n’est
-        affiché ni partagé.
+        {contacted > 0
+          ? `${contacted} donneur${contacted > 1 ? "s" : ""} compatible${contacted > 1 ? "s" : ""} ${contacted > 1 ? "ont" : "a"} été contacté${contacted > 1 ? "s" : ""}. Leur identité n’est pas communiquée ; suivez l’avancement dans « Mes demandes ».`
+          : "Aucun donneur compatible n’a été trouvé pour le moment. L’alerte reste ouverte : de nouveaux donneurs peuvent encore répondre."}
       </p>
-
-      {candidates.length ? (
-        <ul className="space-y-2">
-          {candidates.map((candidate, index) => (
-            <li
-              key={candidate.donor_id}
-              className="reveal-in rounded-2xl bg-light px-4 py-3 text-sm text-secondary"
-              style={{ animationDelay: `${900 + index * 110}ms` }}
-            >
-              <strong className="font-semibold">{candidate.display_name}</strong>
-              {" · "}
-              {candidate.city}
-              {" · "}
-              {candidate.match_method === "gps" ? "à proximité" : "même ville"}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p
-          className="reveal-in text-sm text-muted"
-          style={{ animationDelay: "900ms" }}
-        >
-          Aucun donneur compatible n’est disponible pour le moment. L’alerte
-          reste ouverte : de nouveaux donneurs peuvent encore répondre.
-        </p>
-      )}
 
       <div
         className="reveal-in flex flex-col gap-3 sm:flex-row"
-        style={{ animationDelay: `${900 + candidates.length * 110 + 120}ms` }}
+        style={{ animationDelay: "980ms" }}
       >
         <Link to="/mes-demandes" className="btn-primary">
           Voir mes demandes

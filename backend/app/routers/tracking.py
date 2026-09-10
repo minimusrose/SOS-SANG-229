@@ -7,21 +7,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.auth import get_current_user
 from app.db import get_db
 from app.models import Donor, UrgencyMatch, UrgencyRequest, User
-from app.schemas.urgency import MatchedDonorPublic, UrgencyTrackingRead
+from app.schemas.urgency import UrgencyTrackingRead
 
 router = APIRouter(prefix="/requests", tags=["tracking"])
-
-
-def _matched_public(matches: list[UrgencyMatch]) -> list[MatchedDonorPublic]:
-    return [
-        MatchedDonorPublic(
-            donor_id=item.donor_id,
-            display_name=item.donor.display_name,
-            city=item.donor.city,
-            match_method=item.match_method,
-        )
-        for item in matches
-    ]
 
 
 @router.get(
@@ -30,7 +18,8 @@ def _matched_public(matches: list[UrgencyMatch]) -> list[MatchedDonorPublic]:
     summary="Get one request's tracking status",
     description=(
         "By `public_ref`. Allowed only for the account that opened the request "
-        "or an account matched to it as a donor. No phone numbers or GPS."
+        "or an account matched to it as a donor. Returns counts only — no donor "
+        "identities, phone numbers, or GPS."
     ),
 )
 def get_request(
@@ -42,7 +31,7 @@ def get_request(
         select(UrgencyRequest)
         .options(
             selectinload(UrgencyRequest.hospital),
-            selectinload(UrgencyRequest.matches).selectinload(UrgencyMatch.donor),
+            selectinload(UrgencyRequest.matches),
         )
         .where(UrgencyRequest.public_ref == public_ref)
     )
@@ -79,7 +68,6 @@ def get_request(
         zone_label=urgency.zone_label,
         alerted_donors_count=urgency.alerted_donors_count,
         confirmed_donations_count=urgency.confirmed_donations_count,
-        matched_donors=_matched_public(list(urgency.matches)),
         created_at=urgency.created_at,
         updated_at=urgency.updated_at,
     )

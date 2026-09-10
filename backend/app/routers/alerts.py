@@ -16,7 +16,6 @@ from app.notifications import empty_notification_summary, notify_matched_donors
 from app.refs import new_public_ref
 from app.rules import UnrecognizedHospitalError, require_recognized_hospital
 from app.schemas.urgency import (
-    MatchedDonorPublic,
     MatchingSummary,
     NotificationSummary,
     UrgencyCreateResponse,
@@ -128,15 +127,6 @@ def create_alert(
 
     db.refresh(urgency)
 
-    candidates = [
-        MatchedDonorPublic(
-            donor_id=match.donor.id,
-            display_name=match.donor.display_name,
-            city=match.donor.city,
-            match_method=match.method,
-        )
-        for match in matches
-    ]
     return UrgencyCreateResponse(
         id=urgency.id,
         public_ref=urgency.public_ref,
@@ -154,8 +144,7 @@ def create_alert(
         hospital_city=hospital.city,
         matching=MatchingSummary(
             radius_meters=radius,
-            match_count=len(candidates),
-            candidates=candidates,
+            match_count=len(matches),
         ),
         notification=NotificationSummary(
             channel=notification.channel,
