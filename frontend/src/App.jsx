@@ -14,13 +14,27 @@ import CompatibleRequests from "./pages/CompatibleRequests.jsx";
 import MyInfo from "./pages/MyInfo.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
-function navClass({ isActive }) {
-  return isActive
-    ? "font-bold text-primary-strong"
-    : "font-medium text-secondary/80 hover:text-primary-strong";
+const COLS = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" };
+
+function desktopNavClass({ isActive }) {
+  return [
+    "flex h-full items-center whitespace-nowrap border-b-[3px] text-sm font-semibold uppercase tracking-wide transition-colors duration-micro ease-soft-out",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+    isActive
+      ? "border-primary text-white"
+      : "border-transparent text-white/75 hover:border-white/30 hover:text-white",
+  ].join(" ");
 }
 
-const COLS = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" };
+function mobileNavClass({ isActive }) {
+  return [
+    "flex min-h-[44px] items-center border-l-[3px] px-3 text-base font-semibold transition-colors duration-micro ease-soft-out",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+    isActive
+      ? "border-primary text-white"
+      : "border-transparent text-white/80 hover:text-white",
+  ].join(" ");
+}
 
 export default function App() {
   const toast = useToast();
@@ -28,6 +42,7 @@ export default function App() {
   const { user, isAuthenticated, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   const dismissToast = toast.dismiss;
   useEffect(() => {
@@ -36,6 +51,23 @@ export default function App() {
     setAcctOpen(false);
   }, [location.pathname, dismissToast]);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    function onKeyDown(event) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
+
+  // Feeds the mobile bottom tab bar only — kept as-is (out of scope for the navbar redesign).
   const primaryLinks = useMemo(() => {
     if (isAuthenticated) {
       return [
@@ -52,12 +84,27 @@ export default function App() {
     ];
   }, [isAuthenticated]);
 
-  const accountActions = [
-    { to: "/alerte", label: "Signaler une urgence" },
-    ...(user && user.has_donor_profile
+  // Top navbar entries (excludes the trailing button, rendered separately).
+  const headerLinks = useMemo(() => {
+    if (isAuthenticated) {
+      return [
+        { to: "/", label: "Accueil", end: true },
+        { to: "/mes-demandes", label: "Mes demandes" },
+        { to: "/demandes-en-cours", label: "Demandes en cours" },
+        { to: "/alerte", label: "Signaler une urgence" },
+      ];
+    }
+    return [
+      { to: "/", label: "Accueil", end: true },
+      { to: "/donneur/inscription", label: "Devenir donneur" },
+      { to: "/alerte", label: "Signaler une urgence" },
+    ];
+  }, [isAuthenticated]);
+
+  const accountActions =
+    user && user.has_donor_profile
       ? [{ to: "/mes-informations", label: "Mes informations" }]
-      : [{ to: "/donneur/inscription", label: "Devenir donneur" }]),
-  ];
+      : [{ to: "/donneur/inscription", label: "Devenir donneur" }];
 
   const bottomItems = isAuthenticated ? primaryLinks.length + 1 : primaryLinks.length;
 
@@ -70,45 +117,50 @@ export default function App() {
         Aller au contenu
       </a>
 
-      <header className="sticky top-0 z-30 border-b border-light/80 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+      <header
+        className={`sticky top-0 z-30 bg-secondary transition-shadow duration-micro ease-soft-out ${
+          scrolled ? "shadow-soft" : ""
+        }`}
+      >
+        <div className="mx-auto flex h-[72px] max-w-5xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <NavLink to="/" className="flex min-w-0 items-center gap-2.5" end>
             <BrandMark />
             <span className="min-w-0">
-              <span className="block truncate text-base font-extrabold tracking-tight text-secondary">
+              <span className="block truncate text-base font-extrabold tracking-tight text-white">
                 SOS Sang 229
               </span>
-              <span className="block text-xs font-medium text-muted">
+              <span className="block truncate text-xs font-medium text-white/70">
                 Don de sang d’urgence · Bénin
               </span>
             </span>
           </NavLink>
 
-          <button
-            type="button"
-            className="rounded-full border-2 border-primary px-4 py-1.5 text-sm font-semibold text-primary-strong sm:hidden"
-            aria-expanded={menuOpen}
-            aria-controls="nav-principale"
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            {isAuthenticated ? "Compte" : "Menu"}
-          </button>
+          {/* Desktop navigation (≥1024px) */}
+          <nav className="hidden h-full items-center lg:flex" aria-label="Navigation principale">
+            <ul className="flex h-full items-center">
+              {headerLinks.map((link, index) => (
+                <li key={link.to} className="flex h-full items-center">
+                  {index > 0 ? (
+                    <span aria-hidden="true" className="mx-4 h-4 w-px bg-white/25" />
+                  ) : null}
+                  <NavLink to={link.to} end={link.end} className={desktopNavClass}>
+                    {link.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
 
-          <nav className="hidden items-center gap-x-6 text-sm sm:flex">
-            {primaryLinks.map((link) => (
-              <NavLink key={link.to} to={link.to} end={link.end} className={navClass}>
-                {link.label}
-              </NavLink>
-            ))}
+            <span aria-hidden="true" className="mx-4 h-4 w-px bg-white/25" />
+
             {isAuthenticated ? (
               <div className="relative">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-light px-3 py-1.5 text-sm font-bold text-secondary"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-white/10 px-4 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   aria-expanded={acctOpen}
                   onClick={() => setAcctOpen((open) => !open)}
                 >
-                  {user.display_name}
+                  Mon espace
                   <span aria-hidden="true" className="text-xs">
                     {acctOpen ? "▲" : "▼"}
                   </span>
@@ -149,41 +201,79 @@ export default function App() {
                   </>
                 ) : null}
               </div>
-            ) : null}
+            ) : (
+              <NavLink
+                to="/connexion"
+                className="inline-flex h-10 items-center rounded-lg bg-white/10 px-4 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Connexion
+              </NavLink>
+            )}
           </nav>
+
+          {/* Mobile / tablet trigger (<1024px) */}
+          <button
+            type="button"
+            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border-2 border-white/30 px-3 text-sm font-semibold text-white lg:hidden"
+            aria-expanded={menuOpen}
+            aria-controls="nav-principale-mobile"
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span className="sr-only">
+              {menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            </span>
+            <span aria-hidden="true">{menuOpen ? "✕" : "☰"}</span>
+          </button>
         </div>
 
         {menuOpen ? (
-          <nav id="nav-principale" className="border-t border-light px-4 py-4 sm:hidden">
-            <ul className="space-y-3 text-sm">
-              {primaryLinks.map((link) => (
+          <nav
+            id="nav-principale-mobile"
+            aria-label="Navigation principale"
+            className="border-t border-white/10 bg-secondary px-4 py-4 lg:hidden"
+          >
+            <ul className="space-y-1">
+              {headerLinks.map((link) => (
                 <li key={link.to}>
-                  <NavLink to={link.to} end={link.end} className={navClass}>
+                  <NavLink to={link.to} end={link.end} className={mobileNavClass}>
                     {link.label}
                   </NavLink>
                 </li>
               ))}
+            </ul>
+
+            <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
               {isAuthenticated ? (
                 <>
                   {accountActions.map((action) => (
-                    <li key={action.to}>
-                      <NavLink to={action.to} className={navClass}>
-                        {action.label}
-                      </NavLink>
-                    </li>
-                  ))}
-                  <li>
-                    <button
-                      type="button"
-                      className="font-semibold text-primary-strong"
-                      onClick={logout}
+                    <NavLink
+                      key={action.to}
+                      to={action.to}
+                      className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-white/10 px-4 text-base font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     >
-                      Se déconnecter
-                    </button>
-                  </li>
+                      {action.label}
+                    </NavLink>
+                  ))}
+                  <button
+                    type="button"
+                    className="flex min-h-[44px] w-full items-center justify-center rounded-lg px-4 text-base font-semibold text-white/80 hover:text-white"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      logout();
+                    }}
+                  >
+                    Se déconnecter
+                  </button>
                 </>
-              ) : null}
-            </ul>
+              ) : (
+                <NavLink
+                  to="/connexion"
+                  className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-white/10 px-4 text-base font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  Connexion
+                </NavLink>
+              )}
+            </div>
           </nav>
         ) : null}
       </header>
