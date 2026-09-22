@@ -1,0 +1,325 @@
+{
+  "//": "GENERATED FILE — do not edit by hand. Source of truth: backend/app/matching.py:_COMPATIBLE_DONORS. Regenerate with `python backend/scripts/export_blood_compatibility.py`.",
+  "pairs": [
+    {
+      "donor": "O+",
+      "recipient": "O+",
+      "compatible": true
+    },
+    {
+      "donor": "O-",
+      "recipient": "O+",
+      "compatible": true
+    },
+    {
+      "donor": "A+",
+      "recipient": "O+",
+      "compatible": false
+    },
+    {
+      "donor": "A-",
+      "recipient": "O+",
+      "compatible": false
+    },
+    {
+      "donor": "B+",
+      "recipient": "O+",
+      "compatible": false
+    },
+    {
+      "donor": "B-",
+      "recipient": "O+",
+      "compatible": false
+    },
+    {
+      "donor": "AB+",
+      "recipient": "O+",
+      "compatible": false
+    },
+    {
+      "donor": "AB-",
+      "recipient": "O+",
+      "compatible": false
+    },
+    {
+      "donor": "O+",
+      "recipient": "O-",
+      "compatible": false
+    },
+    {
+      "donor": "O-",
+      "recipient": "O-",
+      "compatible": true
+    },
+    {
+      "donor": "A+",
+      "recipient": "O-",
+      "compatible": false
+    },
+    {
+      "donor": "A-",
+      "recipient": "O-",
+      "compatible": false
+    },
+    {
+      "donor": "B+",
+      "recipient": "O-",
+      "compatible": false
+    },
+    {
+      "donor": "B-",
+      "recipient": "O-",
+      "compatible": false
+    },
+    {
+      "donor": "AB+",
+      "recipient": "O-",
+      "compatible": false
+    },
+    {
+      "donor": "AB-",
+      "recipient": "O-",
+      "compatible": false
+    },
+    {
+      "donor": "O+",
+      "recipient": "A+",
+      "compatible": true
+    },
+    {
+      "donor": "O-",
+      "recipient": "A+",
+      "compatible": true
+    },
+    {
+      "donor": "A+",
+      "recipient": "A+",
+      "compatible": true
+    },
+    {
+      "donor": "A-",
+      "recipient": "A+",
+      "compatible": true
+    },
+    {
+      "donor": "B+",
+      "recipient": "A+",
+      "compatible": false
+    },
+    {
+      "donor": "B-",
+      "recipient": "A+",
+      "compatible": false
+    },
+    {
+      "donor": "AB+",
+      "recipient": "A+",
+      "compatible": false
+    },
+    {
+      "donor": "AB-",
+      "recipient": "A+",
+      "compatible": false
+    },
+    {
+      "donor": "O+",
+      "recipient": "A-",
+      "compatible": false
+    },
+    {
+      "donor": "O-",
+      "recipient": "A-",
+      "compatible": true
+    },
+    {
+      "donor": "A+",
+      "recipient": "A-",
+      "compatible": false
+    },
+    {
+      "donor": "A-",
+      "recipient": "A-",
+      "compatible": true
+    },
+    {
+      "donor": "B+",
+      "recipient": "A-",
+      "compatible": false
+    },
+    {
+      "donor": "B-",
+      "recipient": "A-",
+      "compatible": false
+    },
+    {
+      "donor": "AB+",
+      "recipient": "A-",
+      "compatible": false
+    },
+    {
+      "donor": "AB-",
+      "recipient": "A-",
+      "compatible": false
+    },
+    {
+      "donor": "O+",
+      "recipient": "B+",
+      "compatible": true
+    },
+    {
+      "donor": "O-",
+      "recipient": "B+",
+      "compatible": true
+    },
+    {
+      "donor": "A+",
+      "recipient": "B+",
+      "compatible": false
+    },
+    {
+      "donor": "A-",
+      "recipient": "B+",
+      "compatible": false
+    },
+    {
+      "donor": "B+",
+      "recipient": "B+",
+      "compatible": true
+    },
+    {
+      "donor": "B-",
+      "recipient": "B+",
+      "compatible": true
+    },
+    {
+      "donor": "AB+",
+      "recipient": "B+",
+      "compatible": false
+    },
+    {
+      "donor": "AB-",
+      "recipient": "B+",
+      "compatible": false
+    },
+    {
+      "donor": "O+",
+      "recipient": "B-",
+      "compatible": false
+    },
+    {
+      "donor": "O-",
+      "recipient": "B-",
+      "compatible": true
+    },
+    {
+      "donor": "A+",
+      "recipient": "B-",
+      "compatible": false
+    },
+    {
+      "donor": "A-",
+      "recipient": "B-",
+      "compatible": false
+    },
+    {
+      "donor": "B+",
+      "recipient": "B-",
+      "compatible": false
+    },
+    {
+      "donor": "B-",
+      "recipient": "B-",
+      "compatible": true
+    },
+    {
+      "donor": "AB+",
+      "recipient": "B-",
+      "compatible": false
+    },
+    {
+      "donor": "AB-",
+      "recipient": "B-",
+      "compatible": false
+    },
+    {
+      "donor": "O+",
+      "recipient": "AB+",
+      "compatible": true
+    },
+    {
+      "donor": "O-",
+      "recipient": "AB+",
+      "compatible": true
+    },
+    {
+      "donor": "A+",
+      "recipient": "AB+",
+      "compatible": true
+    },
+    {
+      "donor": "A-",
+      "recipient": "AB+",
+      "compatible": true
+    },
+    {
+      "donor": "B+",
+      "recipient": "AB+",
+      "compatible": true
+    },
+    {
+      "donor": "B-",
+      "recipient": "AB+",
+      "compatible": true
+    },
+    {
+      "donor": "AB+",
+      "recipient": "AB+",
+      "compatible": true
+    },
+    {
+      "donor": "AB-",
+      "recipient": "AB+",
+      "compatible": true
+    },
+    {
+      "donor": "O+",
+      "recipient": "AB-",
+      "compatible": false
+    },
+    {
+      "donor": "O-",
+      "recipient": "AB-",
+      "compatible": true
+    },
+    {
+      "donor": "A+",
+      "recipient": "AB-",
+      "compatible": false
+    },
+    {
+      "donor": "A-",
+      "recipient": "AB-",
+      "compatible": true
+    },
+    {
+      "donor": "B+",
+      "recipient": "AB-",
+      "compatible": false
+    },
+    {
+      "donor": "B-",
+      "recipient": "AB-",
+      "compatible": true
+    },
+    {
+      "donor": "AB+",
+      "recipient": "AB-",
+      "compatible": false
+    },
+    {
+      "donor": "AB-",
+      "recipient": "AB-",
+      "compatible": true
+    }
+  ]
+}

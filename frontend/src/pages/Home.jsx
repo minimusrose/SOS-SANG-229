@@ -1,5 +1,7 @@
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
+import CompatibilityModal from "../components/CompatibilityModal.jsx";
 import { Reveal, RevealGroup } from "../components/Reveal.jsx";
 
 // Hero photo fournie par le client (portrait de donneuse à gauche +
@@ -135,6 +137,8 @@ function HeroCta({ isAuthenticated, rowFrom = "sm" }) {
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const [compatModalOpen, setCompatModalOpen] = useState(false);
+  const compatTriggerRef = useRef(null);
 
   return (
     <div>
@@ -263,6 +267,34 @@ export default function Home() {
           </RevealGroup>
         </div>
       </section>
+
+      {/* Testez votre compatibilité — fond blanc : la section "Comment ça
+          marche" juste au-dessus est déjà grise (bg-light/70) et le bandeau
+          CTA juste en dessous est rouge, donc le blanc garde l'alternance
+          claire/blanc/rouge plutôt que deux blocs gris consécutifs. */}
+      <section id="compatibilite" className="scroll-mt-[72px] bg-white py-14">
+        <Reveal className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-extrabold tracking-tight text-secondary sm:text-3xl">
+            Un doute sur votre compatibilité avec le groupe sanguin d’un
+            proche ?
+          </h2>
+          <button
+            ref={compatTriggerRef}
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setCompatModalOpen(true)}
+            className="btn-primary mt-6"
+          >
+            Testez ici
+          </button>
+        </Reveal>
+      </section>
+
+      <CompatibilityModal
+        open={compatModalOpen}
+        onClose={() => setCompatModalOpen(false)}
+        returnFocusRef={compatTriggerRef}
+      />
 
       {/* CTA */}
       <section className="bg-gradient-to-r from-primary to-primary-dark">
