@@ -123,8 +123,10 @@ export default function App() {
         }`}
       >
         <div
-          className={`mx-auto flex h-[72px] items-center justify-between gap-4 px-4 sm:px-6 lg:gap-14 lg:px-8 ${
-            isAuthenticated ? "max-w-[1240px]" : "max-w-5xl"
+          className={`mx-auto flex h-[72px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 ${
+            isAuthenticated
+              ? "min-[1200px]:justify-start min-[1200px]:gap-16 max-w-[1280px]"
+              : "lg:justify-start lg:gap-16 max-w-5xl"
           }`}
         >
           <NavLink to="/" className="flex min-w-0 items-center gap-2.5" end>
@@ -139,13 +141,17 @@ export default function App() {
             </span>
           </NavLink>
 
-          {/* Desktop navigation. Connected users get one extra link (Signaler une
-              urgence) plus a wider "Mon espace" button, so their layout needs both a
-              later breakpoint and a wider container to avoid overlapping the links
+          {/* Desktop navigation. The logo↔menu gap (outer row, above) and the
+              menu↔bouton gap (this nav's own gap-16, below) use the identical fixed
+              64px token so they stay symmetric at every width — no more "whichever
+              side happens to catch the window's leftover space" like before.
+              Connected users get one extra link (Signaler une urgence) plus a wider
+              "Mon espace" button, so their layout needs both a later breakpoint and a
+              wider container to fit those two 64px gaps without overlapping the links
               (see step 1 bis follow-up) — guest layout is untouched at 1024px/1024px. */}
           <nav
-            className={`hidden h-full items-center ${
-              isAuthenticated ? "min-[1180px]:flex" : "lg:flex"
+            className={`hidden h-full items-center gap-16 ${
+              isAuthenticated ? "min-[1200px]:flex" : "lg:flex"
             }`}
             aria-label="Navigation principale"
           >
@@ -161,8 +167,6 @@ export default function App() {
                 </li>
               ))}
             </ul>
-
-            <span aria-hidden="true" className="mx-6 h-4 w-px bg-white/25" />
 
             {isAuthenticated ? (
               <div className="relative shrink-0">
@@ -227,7 +231,7 @@ export default function App() {
           <button
             type="button"
             className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border-2 border-white/30 px-3 text-sm font-semibold text-white ${
-              isAuthenticated ? "min-[1180px]:hidden" : "lg:hidden"
+              isAuthenticated ? "min-[1200px]:hidden" : "lg:hidden"
             }`}
             aria-expanded={menuOpen}
             aria-controls="nav-principale-mobile"
@@ -245,7 +249,7 @@ export default function App() {
             id="nav-principale-mobile"
             aria-label="Navigation principale"
             className={`border-t border-white/10 bg-secondary px-4 py-4 ${
-              isAuthenticated ? "min-[1180px]:hidden" : "lg:hidden"
+              isAuthenticated ? "min-[1200px]:hidden" : "lg:hidden"
             }`}
           >
             <ul className="space-y-1">
