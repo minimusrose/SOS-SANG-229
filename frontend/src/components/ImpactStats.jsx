@@ -23,7 +23,7 @@ function StatColumn({ target, value, label }) {
   const animated = useCountUp(target ?? 0);
   const display = target != null ? animated : value;
   return (
-    <div className="flex flex-col items-center justify-center gap-3 text-center">
+    <div className="flex flex-col items-center justify-start gap-3 text-center">
       <span className="text-[44px] font-extrabold leading-none text-highlight sm:text-6xl lg:text-7xl">
         {display}
       </span>
