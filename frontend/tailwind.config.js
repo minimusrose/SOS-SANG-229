@@ -14,6 +14,9 @@ export default {
         muted: "#5c6478",
         light: "#edf2f4",
         success: "#00b090",
+        // Grands chiffres sur fond bleu nuit (section Impact) : ≈4.9:1 sur
+        // #2b2d42, largement au-dessus du seuil 3:1 pour du grand texte.
+        highlight: "#ff6b7f",
       },
       boxShadow: {
         card: "0 8px 30px rgb(43 45 66 / 0.08)",

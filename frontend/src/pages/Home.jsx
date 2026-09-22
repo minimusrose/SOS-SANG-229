@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import CompatibilityModal from "../components/CompatibilityModal.jsx";
+import ImpactStats from "../components/ImpactStats.jsx";
 import { Reveal, RevealGroup } from "../components/Reveal.jsx";
 
 // Hero photo fournie par le client (portrait de donneuse à gauche +
@@ -267,6 +268,8 @@ export default function Home() {
           </RevealGroup>
         </div>
       </section>
+
+      <ImpactStats />
 
       {/* Testez votre compatibilité — fond blanc : la section "Comment ça
           marche" juste au-dessus est déjà grise (bg-light/70) et le bandeau
