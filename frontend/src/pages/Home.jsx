@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
+import AgirMaintenant from "../components/AgirMaintenant.jsx";
 import CompatibilityModal from "../components/CompatibilityModal.jsx";
 import ImpactStats from "../components/ImpactStats.jsx";
 import { Reveal, RevealGroup } from "../components/Reveal.jsx";
@@ -268,6 +269,8 @@ export default function Home() {
           </RevealGroup>
         </div>
       </section>
+
+      <AgirMaintenant />
 
       <ImpactStats />
 
