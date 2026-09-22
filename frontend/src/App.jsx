@@ -122,14 +122,12 @@ export default function App() {
           scrolled ? "shadow-soft" : ""
         }`}
       >
-        <div
-          className={`mx-auto flex h-[72px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 ${
-            isAuthenticated
-              ? "min-[1200px]:justify-start min-[1200px]:gap-16 max-w-[1280px]"
-              : "lg:justify-start lg:gap-16 max-w-5xl"
-          }`}
-        >
-          <NavLink to="/" className="flex min-w-0 items-center gap-2.5" end>
+        {/* The bar spans the full screen width now (only capped above 1920px).
+            Left cluster (logo + links) keeps a modest, fixed 48px gap; the
+            button/hamburger uses ml-auto to hug the right edge, absorbing
+            whatever room is left — ANIP-style layout, not a centered column. */}
+        <div className="mx-auto flex h-[72px] max-w-[1920px] items-center gap-12 px-4 sm:px-5 lg:px-6 xl:px-10">
+          <NavLink to="/" className="flex min-w-0 shrink-0 items-center gap-2.5" end>
             <BrandMark />
             <span className="min-w-0">
               <span className="block truncate text-base font-extrabold tracking-tight text-white">
@@ -141,16 +139,14 @@ export default function App() {
             </span>
           </NavLink>
 
-          {/* Desktop navigation. The logo↔menu gap (outer row, above) and the
-              menu↔bouton gap (this nav's own gap-16, below) use the identical fixed
-              64px token so they stay symmetric at every width — no more "whichever
-              side happens to catch the window's leftover space" like before.
-              Connected users get one extra link (Signaler une urgence) plus a wider
-              "Mon espace" button, so their layout needs both a later breakpoint and a
-              wider container to fit those two 64px gaps without overlapping the links
-              (see step 1 bis follow-up) — guest layout is untouched at 1024px/1024px. */}
+          {/* Desktop navigation. `grow` lets this element fill whatever width
+              remains in the full-width bar, so the button's ml-auto below has
+              room to push itself flush against the bar's right edge. Connected
+              users get one extra link (Signaler une urgence) plus a wider "Mon
+              espace" button, so their layout needs a later breakpoint to avoid
+              overlapping the links — guest layout is untouched at 1024px. */}
           <nav
-            className={`hidden h-full items-center gap-16 ${
+            className={`hidden h-full grow items-center gap-12 ${
               isAuthenticated ? "min-[1200px]:flex" : "lg:flex"
             }`}
             aria-label="Navigation principale"
@@ -169,7 +165,7 @@ export default function App() {
             </ul>
 
             {isAuthenticated ? (
-              <div className="relative shrink-0">
+              <div className="relative ml-auto shrink-0">
                 <button
                   type="button"
                   className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg bg-white/10 px-5 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -220,17 +216,19 @@ export default function App() {
             ) : (
               <NavLink
                 to="/connexion"
-                className="inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-lg bg-white/10 px-5 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="ml-auto inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-lg bg-white/10 px-5 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 Connexion
               </NavLink>
             )}
           </nav>
 
-          {/* Mobile / tablet trigger — same breakpoint as the desktop nav above */}
+          {/* Mobile / tablet trigger — same breakpoint as the desktop nav above.
+              ml-auto pushes it flush against the bar's right edge on mobile,
+              where the desktop nav (and its own ml-auto button) is hidden. */}
           <button
             type="button"
-            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border-2 border-white/30 px-3 text-sm font-semibold text-white ${
+            className={`ml-auto inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border-2 border-white/30 px-3 text-sm font-semibold text-white ${
               isAuthenticated ? "min-[1200px]:hidden" : "lg:hidden"
             }`}
             aria-expanded={menuOpen}
