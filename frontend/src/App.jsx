@@ -122,12 +122,22 @@ export default function App() {
           scrolled ? "shadow-soft" : ""
         }`}
       >
-        {/* The bar spans the full screen width now (only capped above 1920px).
-            Left cluster (logo + links) keeps a modest, fixed 48px gap; the
-            button/hamburger uses ml-auto to hug the right edge, absorbing
-            whatever room is left — ANIP-style layout, not a centered column. */}
-        <div className="mx-auto flex h-[72px] max-w-[1920px] items-center gap-12 px-4 sm:px-5 lg:px-6 xl:px-10">
-          <NavLink to="/" className="flex min-w-0 shrink-0 items-center gap-2.5" end>
+        {/* Explicit 3-column grid (1fr / auto / auto) instead of a 3-block flex
+            row: a space-between flex only equalizes the two gaps AROUND the
+            link cluster, it doesn't center the cluster itself — since the logo
+            block is wider than the button, that pushed the links visibly off
+            to the left. With a grid, the link cluster's own column is sized to
+            its content and placed at the true midpoint of the bar (guaranteed
+            by the two 1fr side columns being equal width), independent of how
+            wide the logo or the button happen to be. The button and the
+            mobile trigger share the same 3rd column (col-start-3) — only one
+            of the two is ever visible at a given width. */}
+        <div className="mx-auto grid h-[72px] max-w-[1920px] grid-cols-[1fr_auto_1fr] items-center gap-x-6 px-4 sm:px-5 lg:px-6 xl:px-10">
+          <NavLink
+            to="/"
+            className="col-start-1 flex min-w-0 items-center justify-self-start gap-2.5"
+            end
+          >
             <BrandMark />
             <span className="min-w-0">
               <span className="block truncate text-base font-extrabold tracking-tight text-white">
@@ -139,14 +149,13 @@ export default function App() {
             </span>
           </NavLink>
 
-          {/* Desktop navigation. `grow` lets this element fill whatever width
-              remains in the full-width bar, so the button's ml-auto below has
-              room to push itself flush against the bar's right edge. Connected
-              users get one extra link (Signaler une urgence) plus a wider "Mon
-              espace" button, so their layout needs a later breakpoint to avoid
-              overlapping the links — guest layout is untouched at 1024px. */}
+          {/* Desktop link list — centered in the bar via its own grid column
+              (col-start-2 + justify-self-center), not via leftover flex space.
+              Connected users get one extra link (Signaler une urgence), so
+              their layout needs a later breakpoint to avoid overlapping the
+              logo/button columns — guest layout is untouched at 1024px. */}
           <nav
-            className={`hidden h-full grow items-center gap-12 ${
+            className={`col-start-2 hidden h-full items-center justify-self-center ${
               isAuthenticated ? "min-[1200px]:flex" : "lg:flex"
             }`}
             aria-label="Navigation principale"
@@ -163,72 +172,71 @@ export default function App() {
                 </li>
               ))}
             </ul>
-
-            {isAuthenticated ? (
-              <div className="relative ml-auto shrink-0">
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg bg-white/10 px-5 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  aria-expanded={acctOpen}
-                  onClick={() => setAcctOpen((open) => !open)}
-                >
-                  Mon espace
-                  <span aria-hidden="true" className="text-xs">
-                    {acctOpen ? "▲" : "▼"}
-                  </span>
-                </button>
-                {acctOpen ? (
-                  <>
-                    <button
-                      type="button"
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="fixed inset-0 z-40 cursor-default"
-                      onClick={() => setAcctOpen(false)}
-                    />
-                    <ul className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-light bg-white py-1 shadow-card">
-                      {accountActions.map((action) => (
-                        <li key={action.to}>
-                          <NavLink
-                            to={action.to}
-                            className="block px-4 py-2 text-sm font-medium text-secondary hover:bg-light"
-                          >
-                            {action.label}
-                          </NavLink>
-                        </li>
-                      ))}
-                      <li>
-                        <button
-                          type="button"
-                          className="block w-full px-4 py-2 text-left text-sm font-medium text-primary-strong hover:bg-light"
-                          onClick={() => {
-                            setAcctOpen(false);
-                            logout();
-                          }}
-                        >
-                          Se déconnecter
-                        </button>
-                      </li>
-                    </ul>
-                  </>
-                ) : null}
-              </div>
-            ) : (
-              <NavLink
-                to="/connexion"
-                className="ml-auto inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-lg bg-white/10 px-5 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                Connexion
-              </NavLink>
-            )}
           </nav>
 
-          {/* Mobile / tablet trigger — same breakpoint as the desktop nav above.
-              ml-auto pushes it flush against the bar's right edge on mobile,
-              where the desktop nav (and its own ml-auto button) is hidden. */}
+          {isAuthenticated ? (
+            <div className="relative col-start-3 hidden justify-self-end min-[1200px]:block">
+              <button
+                type="button"
+                className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg bg-white/10 px-5 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                aria-expanded={acctOpen}
+                onClick={() => setAcctOpen((open) => !open)}
+              >
+                Mon espace
+                <span aria-hidden="true" className="text-xs">
+                  {acctOpen ? "▲" : "▼"}
+                </span>
+              </button>
+              {acctOpen ? (
+                <>
+                  <button
+                    type="button"
+                    aria-hidden="true"
+                    tabIndex={-1}
+                    className="fixed inset-0 z-40 cursor-default"
+                    onClick={() => setAcctOpen(false)}
+                  />
+                  <ul className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-light bg-white py-1 shadow-card">
+                    {accountActions.map((action) => (
+                      <li key={action.to}>
+                        <NavLink
+                          to={action.to}
+                          className="block px-4 py-2 text-sm font-medium text-secondary hover:bg-light"
+                        >
+                          {action.label}
+                        </NavLink>
+                      </li>
+                    ))}
+                    <li>
+                      <button
+                        type="button"
+                        className="block w-full px-4 py-2 text-left text-sm font-medium text-primary-strong hover:bg-light"
+                        onClick={() => {
+                          setAcctOpen(false);
+                          logout();
+                        }}
+                      >
+                        Se déconnecter
+                      </button>
+                    </li>
+                  </ul>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <NavLink
+              to="/connexion"
+              className="col-start-3 hidden h-10 items-center justify-self-end whitespace-nowrap rounded-lg bg-white/10 px-5 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary lg:inline-flex"
+            >
+              Connexion
+            </NavLink>
+          )}
+
+          {/* Mobile / tablet trigger — shares the button's column (col-start-3)
+              and is only shown below the same breakpoint the button appears at. */}
           <button
             type="button"
-            className={`ml-auto inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border-2 border-white/30 px-3 text-sm font-semibold text-white ${
+            className={`col-start-3 inline-flex min-h-[44px] min-w-[44px] items-center justify-self-end justify-center rounded-lg border-2 border-white/30 px-3 text-sm font-semibold text-white ${
               isAuthenticated ? "min-[1200px]:hidden" : "lg:hidden"
             }`}
             aria-expanded={menuOpen}
