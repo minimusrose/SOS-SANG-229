@@ -4,12 +4,11 @@ import { api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
-import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import RequiredMark from "../components/RequiredMark.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 import SubmitButton from "../components/SubmitButton.jsx";
-import UrgencyBadge from "../components/UrgencyBadge.jsx";
 
 const INITIAL = {
   requesterName: "",
@@ -119,14 +118,6 @@ export default function EmergencyAlert({ onToast }) {
           <AlertConfirmation result={result} onReset={() => setResult(null)} />
         ) : (
           <>
-            <UrgencyBadge>Donneurs alertés en temps réel</UrgencyBadge>
-
-            <DemoBanner title="Établissements reconnus">
-              Seuls les établissements de santé officiellement reconnus peuvent
-              recevoir une alerte, pour garantir que le don arrive au bon
-              endroit.
-            </DemoBanner>
-
             <form
               className="card space-y-6"
               onSubmit={handleSubmit}
@@ -142,7 +133,7 @@ export default function EmergencyAlert({ onToast }) {
                   <div className="space-y-2">
                     <label htmlFor="requesterName" className="field-label">
                       Votre nom{" "}
-                      <span className="font-normal text-primary-strong">(requis)</span>
+                      <RequiredMark valid={Boolean(form.requesterName.trim())} />
                     </label>
                     <input
                       id="requesterName"
@@ -157,7 +148,7 @@ export default function EmergencyAlert({ onToast }) {
                   <div className="space-y-2">
                     <label htmlFor="phone" className="field-label">
                       Téléphone{" "}
-                      <span className="font-normal text-primary-strong">(requis)</span>
+                      <RequiredMark valid={isValidPhone(form.phone)} />
                     </label>
                     <input
                       id="phone"
@@ -198,7 +189,7 @@ export default function EmergencyAlert({ onToast }) {
               <div className="space-y-2">
                 <label htmlFor="neededGroup" className="field-label">
                   Groupe demandé{" "}
-                  <span className="font-normal text-primary-strong">(requis)</span>
+                  <RequiredMark valid={Boolean(form.bloodGroup)} />
                 </label>
                 <BloodGroupSelect
                   id="neededGroup"
@@ -211,7 +202,7 @@ export default function EmergencyAlert({ onToast }) {
               <div className="space-y-2">
                 <label htmlFor="patientName" className="field-label">
                   Nom du patient{" "}
-                  <span className="font-normal text-primary-strong">(requis)</span>
+                  <RequiredMark valid={Boolean(form.patientName.trim())} />
                 </label>
                 <input
                   id="patientName"
@@ -231,7 +222,7 @@ export default function EmergencyAlert({ onToast }) {
               <div className="space-y-2">
                 <label htmlFor="hospital" className="field-label">
                   Établissement de santé{" "}
-                  <span className="font-normal text-primary-strong">(requis)</span>
+                  <RequiredMark valid={Boolean(form.hospitalId)} />
                 </label>
                 {hospitalsState === "loading" ? (
                   <Skeleton className="h-[54px] w-full" />

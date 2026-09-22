@@ -8,6 +8,7 @@ import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import RequiredMark from "../components/RequiredMark.jsx";
 import SubmitButton from "../components/SubmitButton.jsx";
 import { DEMO_CITIES } from "../data/demo.js";
 
@@ -187,7 +188,7 @@ export default function DonorRegistration({ onToast }) {
               <div className="space-y-2">
                 <label htmlFor="displayName" className="field-label">
                   Nom d’affichage{" "}
-                  <span className="font-normal text-primary-strong">(requis)</span>
+                  <RequiredMark valid={Boolean(form.displayName.trim())} />
                 </label>
                 <input
                   id="displayName"
@@ -203,7 +204,7 @@ export default function DonorRegistration({ onToast }) {
               <div className="space-y-2">
                 <label htmlFor="phone" className="field-label">
                   Téléphone{" "}
-                  <span className="font-normal text-primary-strong">(requis)</span>
+                  <RequiredMark valid={isValidPhone(form.phone)} />
                 </label>
                 <input
                   id="phone"
@@ -245,7 +246,7 @@ export default function DonorRegistration({ onToast }) {
           <div className="space-y-2">
             <label htmlFor="bloodGroup" className="field-label">
               Groupe sanguin{" "}
-              <span className="font-normal text-primary-strong">(requis)</span>
+              <RequiredMark valid={Boolean(form.bloodGroup)} />
             </label>
             <BloodGroupSelect
               id="bloodGroup"
@@ -258,7 +259,7 @@ export default function DonorRegistration({ onToast }) {
           <div className="space-y-2">
             <label htmlFor="city" className="field-label">
               Ville / zone{" "}
-              <span className="font-normal text-primary-strong">(requis)</span>
+              <RequiredMark valid={Boolean(form.city)} />
             </label>
             <select
               id="city"
