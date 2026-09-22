@@ -144,106 +144,95 @@ export default function Home() {
 
   return (
     <div>
-      {/* Hero — mobile (<768px): portrait crop only, text in a solid band below
-          the photo (the 36–68% safe band the image reserves for text becomes
-          too narrow to hold on a cropped mobile frame). */}
-      <section className="relative isolate overflow-hidden bg-secondary md:hidden">
-        <div className="relative h-[50svh] min-h-[320px] max-h-[480px] w-full overflow-hidden">
-          <picture>
-            <source srcSet={HERO_IMAGE.mobile.avif} type="image/avif" />
-            <source srcSet={HERO_IMAGE.mobile.webp} type="image/webp" />
-            <img
-              src={HERO_IMAGE.mobile.fallback}
-              alt=""
+      {/* Hero — id porté par ce wrapper (pas par les <section> mobile/desktop
+          elles-mêmes : un seul des deux blocs est visible à la fois via CSS,
+          mais les deux existent dans le DOM en même temps — un id répété sur
+          les deux serait invalide en HTML). */}
+      <div id="hero" className="scroll-mt-[72px]">
+        {/* Hero — mobile (<768px): portrait crop only, text in a solid band
+            below the photo (the 36–68% safe band the image reserves for
+            text becomes too narrow to hold on a cropped mobile frame). */}
+        <section className="relative isolate overflow-hidden bg-secondary md:hidden">
+          <div className="relative h-[50svh] min-h-[320px] max-h-[480px] w-full overflow-hidden">
+            <picture>
+              <source srcSet={HERO_IMAGE.mobile.avif} type="image/avif" />
+              <source srcSet={HERO_IMAGE.mobile.webp} type="image/webp" />
+              <img
+                src={HERO_IMAGE.mobile.fallback}
+                alt=""
+                aria-hidden="true"
+                width={HERO_IMAGE.mobile.width}
+                height={HERO_IMAGE.mobile.height}
+                fetchpriority="high"
+                loading="eager"
+                className="h-full w-full object-cover object-center"
+              />
+            </picture>
+            <div
               aria-hidden="true"
-              width={HERO_IMAGE.mobile.width}
-              height={HERO_IMAGE.mobile.height}
-              fetchpriority="high"
-              loading="eager"
-              className="h-full w-full object-cover object-center"
+              className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-secondary to-transparent"
             />
-          </picture>
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-secondary to-transparent"
-          />
-        </div>
-        <Reveal className="bg-gradient-to-b from-secondary to-secondary/95 px-4 py-10">
-          <h1 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-white">
-            Le bon donneur, au bon endroit, au bon moment.
-          </h1>
-          <p className="mt-4 text-base leading-7 text-white/85">
-            Quand un établissement hospitalier ou un patient manque de sang,
-            chaque minute compte. Inscrivez-vous et recevez une alerte
-            uniquement lorsque votre groupe sanguin est recherché à proximité.
-          </p>
-          <HeroCta isAuthenticated={isAuthenticated} />
-        </Reveal>
-      </section>
-
-      {/* Hero — desktop/tablet (≥768px): full-bleed photo, text confined to the
-          36–68% safe band (pl-[38%] / pr-[32%] ⇒ a ~30%-wide column starting
-          just right of center), never centered on the whole hero and never
-          left-aligned to 0 — both would land on the portrait or the icons. */}
-      <section className="relative isolate hidden overflow-hidden bg-secondary md:block">
-        <div className="absolute inset-0">
-          <picture>
-            <source srcSet={HERO_IMAGE.desktop.avif} type="image/avif" />
-            <source srcSet={HERO_IMAGE.desktop.webp} type="image/webp" />
-            <img
-              src={HERO_IMAGE.desktop.fallback}
-              alt=""
-              aria-hidden="true"
-              width={HERO_IMAGE.desktop.width}
-              height={HERO_IMAGE.desktop.height}
-              fetchpriority="high"
-              loading="eager"
-              className="h-full w-full object-cover"
-            />
-          </picture>
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-b from-secondary/45 via-secondary/45 to-secondary/70"
-          />
-        </div>
-
-        <RevealGroup
-          className="relative flex min-h-[max(560px,calc(100svh-72px))] w-full items-center pl-[38%] pr-[32%] py-16"
-        >
-          <div>
-            <h1 className="text-[2.5rem] font-extrabold leading-[1.15] tracking-tight text-white lg:text-[2.75rem]">
+          </div>
+          <Reveal className="bg-gradient-to-b from-secondary to-secondary/95 px-4 py-10">
+            <h1 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-white">
               Le bon donneur, au bon endroit, au bon moment.
             </h1>
-            <p className="mt-5 text-base leading-7 text-white/85">
+            <p className="mt-4 text-base leading-7 text-white/85">
               Quand un établissement hospitalier ou un patient manque de sang,
               chaque minute compte. Inscrivez-vous et recevez une alerte
               uniquement lorsque votre groupe sanguin est recherché à
               proximité.
             </p>
-            <HeroCta isAuthenticated={isAuthenticated} rowFrom="xl" />
-          </div>
-        </RevealGroup>
-      </section>
+            <HeroCta isAuthenticated={isAuthenticated} />
+          </Reveal>
+        </section>
 
-      {/* Confiance */}
-      <section className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
-        <RevealGroup className="grid gap-4 sm:grid-cols-2">
-          {trust.map((item) => (
-            <div key={item.title} className="card flex gap-4">
-              <span className="shrink-0 text-primary-strong">{item.icon}</span>
-              <div>
-                <h2 className="text-base font-bold text-secondary">
-                  {item.title}
-                </h2>
-                <p className="mt-1.5 text-sm leading-6 text-muted">{item.body}</p>
-              </div>
+        {/* Hero — desktop/tablet (≥768px): full-bleed photo, text confined
+            to the 36–68% safe band (pl-[38%] / pr-[32%] ⇒ a ~30%-wide
+            column starting just right of center), never centered on the
+            whole hero and never left-aligned to 0 — both would land on the
+            portrait or the icons. */}
+        <section className="relative isolate hidden overflow-hidden bg-secondary md:block">
+          <div className="absolute inset-0">
+            <picture>
+              <source srcSet={HERO_IMAGE.desktop.avif} type="image/avif" />
+              <source srcSet={HERO_IMAGE.desktop.webp} type="image/webp" />
+              <img
+                src={HERO_IMAGE.desktop.fallback}
+                alt=""
+                aria-hidden="true"
+                width={HERO_IMAGE.desktop.width}
+                height={HERO_IMAGE.desktop.height}
+                fetchpriority="high"
+                loading="eager"
+                className="h-full w-full object-cover"
+              />
+            </picture>
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-b from-secondary/45 via-secondary/45 to-secondary/70"
+            />
+          </div>
+
+          <RevealGroup className="relative flex min-h-[max(560px,calc(100svh-72px))] w-full items-center pl-[38%] pr-[32%] py-16">
+            <div>
+              <h1 className="text-[2.5rem] font-extrabold leading-[1.15] tracking-tight text-white lg:text-[2.75rem]">
+                Le bon donneur, au bon endroit, au bon moment.
+              </h1>
+              <p className="mt-5 text-base leading-7 text-white/85">
+                Quand un établissement hospitalier ou un patient manque de
+                sang, chaque minute compte. Inscrivez-vous et recevez une
+                alerte uniquement lorsque votre groupe sanguin est recherché
+                à proximité.
+              </p>
+              <HeroCta isAuthenticated={isAuthenticated} rowFrom="xl" />
             </div>
-          ))}
-        </RevealGroup>
-      </section>
+          </RevealGroup>
+        </section>
+      </div>
 
       {/* Comment ça marche */}
-      <section className="bg-light/70">
+      <section id="comment-ca-marche" className="scroll-mt-[72px] bg-light">
         <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
           <Reveal>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-strong">
@@ -270,15 +259,36 @@ export default function Home() {
         </div>
       </section>
 
-      <AgirMaintenant />
-
       <ImpactStats />
 
-      {/* Testez votre compatibilité — fond blanc : la section "Comment ça
-          marche" juste au-dessus est déjà grise (bg-light/70) et le bandeau
-          CTA juste en dessous est rouge, donc le blanc garde l'alternance
-          claire/blanc/rouge plutôt que deux blocs gris consécutifs. */}
-      <section id="compatibilite" className="scroll-mt-[72px] bg-white py-14">
+      <AgirMaintenant />
+
+      {/* Confiance — sa propre section (id + un h3 par carte, pas de h2 :
+          les deux cartes sont deux blocs équivalents côte à côte, sans titre
+          d'ensemble fourni ; un h2 par carte aurait laissé deux h2 dans la
+          même section). Fond blanc, entre le gris clair d'"Agir maintenant"
+          et le gris clair de "Testez votre compatibilité". */}
+      <section id="confiance" className="scroll-mt-[72px] bg-white px-4 py-14 sm:px-6 lg:px-8">
+        <RevealGroup className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2">
+          {trust.map((item) => (
+            <div key={item.title} className="card flex gap-4">
+              <span className="shrink-0 text-primary-strong">{item.icon}</span>
+              <div>
+                <h3 className="text-base font-bold text-secondary">
+                  {item.title}
+                </h3>
+                <p className="mt-1.5 text-sm leading-6 text-muted">{item.body}</p>
+              </div>
+            </div>
+          ))}
+        </RevealGroup>
+      </section>
+
+      {/* Testez votre compatibilité — fond gris clair : la section
+          "Confiance" juste au-dessus est blanche, donc le gris garde
+          l'alternance blanc/gris/rouge plutôt que deux blocs blancs
+          consécutifs. */}
+      <section id="compatibilite" className="scroll-mt-[72px] bg-light py-14">
         <Reveal className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="text-2xl font-extrabold tracking-tight text-secondary sm:text-3xl">
             Un doute sur votre compatibilité avec le groupe sanguin d’un

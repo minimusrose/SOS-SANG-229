@@ -36,7 +36,10 @@ function StatColumn({ target, value, label }) {
 
 export default function ImpactStats() {
   return (
-    <section className="relative isolate bg-secondary py-16 lg:py-24">
+    <section
+      id="impact"
+      className="relative isolate scroll-mt-[72px] bg-secondary py-16 lg:py-24"
+    >
       {/* Bord supérieur courbe : ce bloc déborde au-dessus de la section
           (bottom-full) et peint par-dessus la fin de la section précédente,
           quelle que soit sa couleur — jonction toujours sans trait ni

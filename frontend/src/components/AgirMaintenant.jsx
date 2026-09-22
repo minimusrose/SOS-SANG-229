@@ -43,7 +43,7 @@ function ActionCard({ title, body, to }) {
 
 export default function AgirMaintenant() {
   return (
-    <section className="bg-light py-16 lg:py-20">
+    <section id="agir-maintenant" className="scroll-mt-[72px] bg-light py-16 lg:py-20">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <Reveal className="text-center">
           <h2 className="text-3xl font-extrabold tracking-tight text-secondary">
