@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { ApiError, api } from "../api/client.js";
 import { formatDateTime } from "../lib/status.js";
 import Skeleton from "./Skeleton.jsx";
@@ -19,8 +19,14 @@ function Field({ label, children }) {
  * Read-only detail of one request, fetched by public reference.
  * Used from "Mes demandes". Access is enforced by the API (requester or
  * matched donor only).
+ *
+ * Forwards its ref to the root <section> (focused by the caller when the
+ * panel opens, per the "move focus to the panel" accessibility requirement).
  */
-export default function RequestDetail({ publicRef, onClose }) {
+const RequestDetail = forwardRef(function RequestDetail(
+  { publicRef, onClose },
+  ref,
+) {
   const [detail, setDetail] = useState(null);
   const [state, setState] = useState("loading");
 
@@ -47,7 +53,13 @@ export default function RequestDetail({ publicRef, onClose }) {
   }, [publicRef]);
 
   return (
-    <section className="card space-y-4">
+    <section
+      ref={ref}
+      tabIndex={-1}
+      role="region"
+      aria-label={`Détail de la demande ${publicRef}`}
+      className="card space-y-4 focus:outline-none"
+    >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="font-mono text-lg font-extrabold text-secondary">
           {publicRef}
@@ -57,10 +69,18 @@ export default function RequestDetail({ publicRef, onClose }) {
           {onClose ? (
             <button
               type="button"
-              className="text-sm font-semibold text-muted hover:text-secondary"
+              aria-label="Fermer"
               onClick={onClose}
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted transition duration-micro ease-soft-out hover:bg-light hover:text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
-              Fermer
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path
+                  d="M6 6l12 12M18 6 6 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
             </button>
           ) : null}
         </div>
@@ -118,4 +138,6 @@ export default function RequestDetail({ publicRef, onClose }) {
       ) : null}
     </section>
   );
-}
+});
+
+export default RequestDetail;

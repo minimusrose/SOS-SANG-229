@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import PageFrame from "../components/PageFrame.jsx";
@@ -13,6 +13,22 @@ export default function MyRequests({ onToast }) {
   const [rows, setRows] = useState([]);
   const [state, setState] = useState("loading");
   const [selectedRef, setSelectedRef] = useState(null);
+  const detailRef = useRef(null);
+  const lastTriggerRef = useRef(null);
+
+  useEffect(() => {
+    if (selectedRef) detailRef.current?.focus();
+  }, [selectedRef]);
+
+  function openDetail(publicRef, triggerEl) {
+    lastTriggerRef.current = triggerEl;
+    setSelectedRef(publicRef);
+  }
+
+  function closeDetail() {
+    setSelectedRef(null);
+    lastTriggerRef.current?.focus();
+  }
 
   const load = useCallback(async () => {
     setState("loading");
@@ -40,8 +56,9 @@ export default function MyRequests({ onToast }) {
 
         {selectedRef ? (
           <RequestDetail
+            ref={detailRef}
             publicRef={selectedRef}
-            onClose={() => setSelectedRef(null)}
+            onClose={closeDetail}
           />
         ) : null}
 
@@ -78,11 +95,7 @@ export default function MyRequests({ onToast }) {
           <RevealGroup as="ul" className="grid gap-4 md:grid-cols-2">
             {rows.map((item) => (
               <li key={item.public_ref}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedRef(item.public_ref)}
-                  className="card block w-full space-y-4 text-left transition duration-micro ease-soft-out hover:-translate-y-0.5 hover:shadow-soft"
-                >
+                <div className="card space-y-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <p className="font-mono text-sm font-bold text-secondary">
                       {item.public_ref}
@@ -121,10 +134,22 @@ export default function MyRequests({ onToast }) {
                       </dd>
                     </div>
                   </dl>
-                  <p className="text-xs text-muted">
-                    Créée {formatDateTime(item.created_at)}
-                  </p>
-                </button>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted">
+                      Créée {formatDateTime(item.created_at)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(event) =>
+                        openDetail(item.public_ref, event.currentTarget)
+                      }
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-sm font-bold text-primary transition-colors duration-micro ease-soft-out hover:text-primary-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      Voir plus
+                      <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
+                </div>
               </li>
             ))}
           </RevealGroup>
