@@ -191,11 +191,6 @@ export default function CompatibilityModal({ open, onClose, returnFocusRef }) {
           ) : null}
         </div>
 
-        <p className="mt-4 text-xs leading-5 text-muted">
-          Information indicative concernant la transfusion de globules rouges.
-          La décision transfusionnelle relève toujours de l’équipe médicale.
-        </p>
-
         <button type="button" onClick={onClose} className="btn-secondary mt-6 w-full">
           Fermer
         </button>
