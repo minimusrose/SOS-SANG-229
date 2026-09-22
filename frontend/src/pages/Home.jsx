@@ -30,12 +30,12 @@ const steps = [
   {
     n: "1",
     title: "Signaler le besoin",
-    body: "Un proche ou l’équipe soignante indique le groupe recherché et l’établissement. En moins d’une minute.",
+    body: "Un proche ou l’équipe soignante indique le groupe recherché et l’établissement.",
   },
   {
     n: "2",
     title: "Alerter les donneurs proches",
-    body: "Les donneurs compatibles de la même ville reçoivent l’alerte et répondent d’un geste.",
+    body: "Les donneurs compatibles de la même ville reçoivent l’alerte. Dès que le don est fait, ils le confirment sur la plateforme.",
   },
   {
     n: "3",
@@ -90,7 +90,7 @@ const trust = [
   {
     icon: <ShieldCheck />,
     title: "Établissements reconnus par l’État",
-    body: "Une alerte ne peut cibler qu’un hôpital public officiellement reconnu — pour que le don arrive au bon endroit.",
+    body: "Une alerte ne peut cibler qu’un hôpital public officiellement reconnu — pour que le don arrive dans un endroit autorisé.",
   },
   {
     icon: <NoDirectLink />,
