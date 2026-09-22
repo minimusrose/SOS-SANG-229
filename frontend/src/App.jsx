@@ -122,7 +122,11 @@ export default function App() {
           scrolled ? "shadow-soft" : ""
         }`}
       >
-        <div className="mx-auto flex h-[72px] max-w-5xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div
+          className={`mx-auto flex h-[72px] items-center justify-between gap-4 px-4 sm:px-6 lg:gap-14 lg:px-8 ${
+            isAuthenticated ? "max-w-[1240px]" : "max-w-5xl"
+          }`}
+        >
           <NavLink to="/" className="flex min-w-0 items-center gap-2.5" end>
             <BrandMark />
             <span className="min-w-0">
@@ -135,8 +139,16 @@ export default function App() {
             </span>
           </NavLink>
 
-          {/* Desktop navigation (≥1024px) */}
-          <nav className="hidden h-full items-center lg:flex" aria-label="Navigation principale">
+          {/* Desktop navigation. Connected users get one extra link (Signaler une
+              urgence) plus a wider "Mon espace" button, so their layout needs both a
+              later breakpoint and a wider container to avoid overlapping the links
+              (see step 1 bis follow-up) — guest layout is untouched at 1024px/1024px. */}
+          <nav
+            className={`hidden h-full items-center ${
+              isAuthenticated ? "min-[1180px]:flex" : "lg:flex"
+            }`}
+            aria-label="Navigation principale"
+          >
             <ul className="flex h-full items-center">
               {headerLinks.map((link, index) => (
                 <li key={link.to} className="flex h-full items-center">
@@ -150,13 +162,13 @@ export default function App() {
               ))}
             </ul>
 
-            <span aria-hidden="true" className="mx-4 h-4 w-px bg-white/25" />
+            <span aria-hidden="true" className="mx-6 h-4 w-px bg-white/25" />
 
             {isAuthenticated ? (
-              <div className="relative">
+              <div className="relative shrink-0">
                 <button
                   type="button"
-                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-white/10 px-4 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-lg bg-white/10 px-5 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   aria-expanded={acctOpen}
                   onClick={() => setAcctOpen((open) => !open)}
                 >
@@ -204,17 +216,19 @@ export default function App() {
             ) : (
               <NavLink
                 to="/connexion"
-                className="inline-flex h-10 items-center rounded-lg bg-white/10 px-4 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-lg bg-white/10 px-5 text-sm font-semibold text-white transition duration-micro ease-soft-out hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 Connexion
               </NavLink>
             )}
           </nav>
 
-          {/* Mobile / tablet trigger (<1024px) */}
+          {/* Mobile / tablet trigger — same breakpoint as the desktop nav above */}
           <button
             type="button"
-            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border-2 border-white/30 px-3 text-sm font-semibold text-white lg:hidden"
+            className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border-2 border-white/30 px-3 text-sm font-semibold text-white ${
+              isAuthenticated ? "min-[1180px]:hidden" : "lg:hidden"
+            }`}
             aria-expanded={menuOpen}
             aria-controls="nav-principale-mobile"
             onClick={() => setMenuOpen((open) => !open)}
@@ -230,7 +244,9 @@ export default function App() {
           <nav
             id="nav-principale-mobile"
             aria-label="Navigation principale"
-            className="border-t border-white/10 bg-secondary px-4 py-4 lg:hidden"
+            className={`border-t border-white/10 bg-secondary px-4 py-4 ${
+              isAuthenticated ? "min-[1180px]:hidden" : "lg:hidden"
+            }`}
           >
             <ul className="space-y-1">
               {headerLinks.map((link) => (
