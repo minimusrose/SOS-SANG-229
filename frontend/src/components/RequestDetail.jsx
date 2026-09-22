@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useState } from "react";
 import { ApiError, api } from "../api/client.js";
-import { formatDateTime } from "../lib/status.js";
+import { displayStatus, formatDateTime } from "../lib/status.js";
 import Skeleton from "./Skeleton.jsx";
 import StatusBadge from "./StatusBadge.jsx";
 
@@ -65,7 +65,7 @@ const RequestDetail = forwardRef(function RequestDetail(
           {publicRef}
         </p>
         <div className="flex items-center gap-3">
-          {detail ? <StatusBadge status={detail.status} /> : null}
+          {detail ? <StatusBadge status={displayStatus(detail)} /> : null}
           {onClose ? (
             <button
               type="button"

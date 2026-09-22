@@ -7,7 +7,7 @@ import RequestDetail from "../components/RequestDetail.jsx";
 import { RevealGroup } from "../components/Reveal.jsx";
 import { SkeletonCard } from "../components/Skeleton.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
-import { formatDateTime } from "../lib/status.js";
+import { displayStatus, formatDateTime } from "../lib/status.js";
 
 export default function MyRequests({ onToast }) {
   const [rows, setRows] = useState([]);
@@ -100,7 +100,7 @@ export default function MyRequests({ onToast }) {
                     <p className="font-mono text-sm font-bold text-secondary">
                       {item.public_ref}
                     </p>
-                    <StatusBadge status={item.status} />
+                    <StatusBadge status={displayStatus(item)} />
                   </div>
                   <dl className="grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
                     <div>
