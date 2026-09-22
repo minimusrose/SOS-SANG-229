@@ -1,8 +1,23 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
-import BeninMap from "../components/BeninMap.jsx";
 import { Reveal, RevealGroup } from "../components/Reveal.jsx";
-import useCountUp from "../hooks/useCountUp.js";
+
+// TODO(image-client): l'image du hero (portrait de donneuse à gauche +
+// pictogrammes à droite, 3556×2000) n'a pas été fournie avec ce prompt —
+// déposer les fichiers réels dans public/images/hero/ sous ces noms exacts
+// (ou mettre à jour les chemins ci-dessous) puis retirer ce commentaire.
+const HERO_IMAGE = {
+  desktop: {
+    avif: "/images/hero/hero-desktop.avif",
+    webp: "/images/hero/hero-desktop.webp",
+    fallback: "/images/hero/hero-desktop.jpg",
+  },
+  mobile: {
+    avif: "/images/hero/hero-mobile.avif",
+    webp: "/images/hero/hero-mobile.webp",
+    fallback: "/images/hero/hero-mobile.jpg",
+  },
+};
 
 const steps = [
   {
@@ -21,39 +36,6 @@ const steps = [
     body: "L’avancement est visible en temps réel : ouverte, en cours, pourvue. Chacun sait où en est la demande.",
   },
 ];
-
-function Stat({ target, label }) {
-  const value = useCountUp(target);
-  return (
-    <span className="flex items-baseline gap-1.5">
-      <span className="text-xl font-extrabold text-secondary">{value}</span>
-      <span className="text-xs font-medium text-muted">{label}</span>
-    </span>
-  );
-}
-
-function NetworkStrip() {
-  return (
-    <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-light bg-white/70 px-5 py-3.5 shadow-soft">
-      <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary-strong">
-        <span className="relative flex h-2 w-2">
-          <span
-            className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60"
-            data-decorative
-          />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-        </span>
-        Réseau actif
-      </span>
-      <Stat target={7} label="établissements reconnus" />
-      <Stat target={7} label="villes desservies" />
-      <span className="flex items-baseline gap-1.5">
-        <span className="text-xl font-extrabold text-secondary">&lt; 15&nbsp;min</span>
-        <span className="text-xs font-medium text-muted">réponse visée</span>
-      </span>
-    </div>
-  );
-}
 
 function ShieldCheck() {
   return (
@@ -110,78 +92,124 @@ const trust = [
   },
 ];
 
+// rowFrom: breakpoint at which the buttons go from stacked to side-by-side.
+// The mobile hero band is full-width, so it can go side-by-side as soon as
+// there's room (sm, 640px — "pleine largeur uniquement sous 640px"). The
+// desktop hero's text column is only ~30% of the bar, so it stays stacked
+// until there's genuinely enough room for two pill buttons side by side (xl).
+function HeroCta({ isAuthenticated, rowFrom = "sm" }) {
+  const direction = rowFrom === "xl" ? "flex-col xl:flex-row" : "flex-col sm:flex-row";
+  const className = `mt-8 flex gap-3 ${direction}`;
+
+  if (isAuthenticated) {
+    return (
+      <div className={className}>
+        <Link to="/mes-demandes" className="btn-primary w-full sm:w-auto">
+          Mes demandes
+        </Link>
+        <Link to="/demandes-en-cours" className="btn-secondary w-full sm:w-auto">
+          Demandes en cours
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className={className}>
+      <Link to="/alerte" className="btn-primary w-full sm:w-auto">
+        J’ai besoin de sang
+      </Link>
+      <Link
+        to="/donneur/inscription"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-success bg-white/90 px-6 py-3 text-base font-semibold text-success transition duration-micro ease-soft-out hover:bg-white sm:w-auto"
+      >
+        Devenir donneur
+      </Link>
+    </div>
+  );
+}
+
 export default function Home() {
   const { isAuthenticated } = useAuth();
 
   return (
     <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-primary/[0.05] via-white to-light">
-        <div
-          className="pointer-events-none absolute right-[-10%] top-[-20%] h-[32rem] w-[32rem] rounded-full bg-primary/10 blur-3xl"
-          aria-hidden="true"
-          data-decorative
-        />
-        <RevealGroup className="relative mx-auto grid max-w-5xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-10 lg:px-8">
+      {/* Hero — mobile (<768px): portrait crop only, text in a solid band below
+          the photo (the 36–68% safe band the image reserves for text becomes
+          too narrow to hold on a cropped mobile frame). */}
+      <section className="relative isolate overflow-hidden bg-secondary md:hidden">
+        <div className="relative h-[50svh] min-h-[320px] max-h-[480px] w-full overflow-hidden">
+          <picture>
+            <source srcSet={HERO_IMAGE.mobile.avif} type="image/avif" />
+            <source srcSet={HERO_IMAGE.mobile.webp} type="image/webp" />
+            <img
+              src={HERO_IMAGE.mobile.fallback}
+              alt=""
+              aria-hidden="true"
+              width={1200}
+              height={1500}
+              fetchpriority="high"
+              loading="eager"
+              className="h-full w-full object-cover object-[20%_center]"
+            />
+          </picture>
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-secondary to-transparent"
+          />
+        </div>
+        <Reveal className="bg-gradient-to-b from-secondary to-secondary/95 px-4 py-10">
+          <h1 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-white">
+            Le bon donneur, au bon endroit, au bon moment.
+          </h1>
+          <p className="mt-4 text-base leading-7 text-white/85">
+            Quand un établissement hospitalier ou un patient manque de sang,
+            chaque minute compte. Inscrivez-vous et recevez une alerte
+            uniquement lorsque votre groupe sanguin est recherché à proximité.
+          </p>
+          <HeroCta isAuthenticated={isAuthenticated} />
+        </Reveal>
+      </section>
+
+      {/* Hero — desktop/tablet (≥768px): full-bleed photo, text confined to the
+          36–68% safe band (pl-[38%] / pr-[32%] ⇒ a ~30%-wide column starting
+          just right of center), never centered on the whole hero and never
+          left-aligned to 0 — both would land on the portrait or the icons. */}
+      <section className="relative isolate hidden overflow-hidden bg-secondary md:block">
+        <div className="absolute inset-0">
+          <picture>
+            <source srcSet={HERO_IMAGE.desktop.avif} type="image/avif" />
+            <source srcSet={HERO_IMAGE.desktop.webp} type="image/webp" />
+            <img
+              src={HERO_IMAGE.desktop.fallback}
+              alt=""
+              aria-hidden="true"
+              width={3556}
+              height={2000}
+              fetchpriority="high"
+              loading="eager"
+              className="h-full w-full object-cover"
+            />
+          </picture>
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-b from-secondary/45 via-secondary/45 to-secondary/70"
+          />
+        </div>
+
+        <RevealGroup
+          className="relative flex min-h-[max(560px,calc(100svh-72px))] w-full items-center pl-[38%] pr-[32%] py-16"
+        >
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary-strong">
-              <span className="relative flex h-2 w-2">
-                <span
-                  className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60"
-                  data-decorative
-                />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              Alerte transfusionnelle · Bénin
-            </span>
-
-            <h1 className="mt-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-secondary sm:text-5xl">
-              Un donneur de sang compatible,{" "}
-              <span className="text-primary">près de l’hôpital</span>, en quelques
-              minutes.
+            <h1 className="text-[2.5rem] font-extrabold leading-[1.15] tracking-tight text-white lg:text-[2.75rem]">
+              Le bon donneur, au bon endroit, au bon moment.
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-muted">
-              SOS Sang 229 prévient les donneurs compatibles de la ville de
-              l’établissement et vous aide à suivre la demande jusqu’au don.
+            <p className="mt-5 text-base leading-7 text-white/85">
+              Quand un établissement hospitalier ou un patient manque de sang,
+              chaque minute compte. Inscrivez-vous et recevez une alerte
+              uniquement lorsque votre groupe sanguin est recherché à
+              proximité.
             </p>
-
-            {isAuthenticated ? (
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link to="/mes-demandes" className="btn-primary w-full sm:w-auto">
-                  Mes demandes
-                </Link>
-                <Link
-                  to="/demandes-en-cours"
-                  className="btn-secondary w-full sm:w-auto"
-                >
-                  Demandes en cours
-                </Link>
-              </div>
-            ) : (
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link to="/alerte" className="btn-primary w-full sm:w-auto">
-                  J’ai besoin de sang
-                </Link>
-                <Link
-                  to="/donneur/inscription"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-success px-6 py-3 text-base font-semibold text-success transition duration-micro ease-soft-out hover:bg-success/5 sm:w-auto"
-                >
-                  Devenir donneur
-                </Link>
-              </div>
-            )}
-
-            <NetworkStrip />
-          </div>
-
-          <div className="relative mx-auto w-full max-w-sm">
-            <div className="card p-4 sm:p-6">
-              <BeninMap className="mx-auto max-h-[26rem]" />
-              <p className="mt-3 flex items-center justify-center gap-2 font-mono text-xs text-muted">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                Cotonou · alerte en cours · 2 donneurs prévenus
-              </p>
-            </div>
+            <HeroCta isAuthenticated={isAuthenticated} rowFrom="xl" />
           </div>
         </RevealGroup>
       </section>
