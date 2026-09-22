@@ -2,20 +2,25 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { Reveal, RevealGroup } from "../components/Reveal.jsx";
 
-// TODO(image-client): l'image du hero (portrait de donneuse à gauche +
-// pictogrammes à droite, 3556×2000) n'a pas été fournie avec ce prompt —
-// déposer les fichiers réels dans public/images/hero/ sous ces noms exacts
-// (ou mettre à jour les chemins ci-dessous) puis retirer ce commentaire.
+// Hero photo fournie par le client (portrait de donneuse à gauche +
+// pictogrammes à droite). Le cadre rouge de la source (~56px/3556) a été
+// retiré au dépôt du fichier ; la variante mobile est un recadrage dédié sur
+// le portrait (0–45% de la largeur), pas un simple object-position sur
+// l'image pleine largeur, pour garder une vraie résolution une fois zoomée.
 const HERO_IMAGE = {
   desktop: {
     avif: "/images/hero/hero-desktop.avif",
     webp: "/images/hero/hero-desktop.webp",
     fallback: "/images/hero/hero-desktop.jpg",
+    width: 2400,
+    height: 1316,
   },
   mobile: {
     avif: "/images/hero/hero-mobile.avif",
     webp: "/images/hero/hero-mobile.webp",
     fallback: "/images/hero/hero-mobile.jpg",
+    width: 1100,
+    height: 1340,
   },
 };
 
@@ -145,11 +150,11 @@ export default function Home() {
               src={HERO_IMAGE.mobile.fallback}
               alt=""
               aria-hidden="true"
-              width={1200}
-              height={1500}
+              width={HERO_IMAGE.mobile.width}
+              height={HERO_IMAGE.mobile.height}
               fetchpriority="high"
               loading="eager"
-              className="h-full w-full object-cover object-[20%_center]"
+              className="h-full w-full object-cover object-center"
             />
           </picture>
           <div
@@ -183,8 +188,8 @@ export default function Home() {
               src={HERO_IMAGE.desktop.fallback}
               alt=""
               aria-hidden="true"
-              width={3556}
-              height={2000}
+              width={HERO_IMAGE.desktop.width}
+              height={HERO_IMAGE.desktop.height}
               fetchpriority="high"
               loading="eager"
               className="h-full w-full object-cover"
