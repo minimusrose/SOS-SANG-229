@@ -1,19 +1,43 @@
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
-import BeninMap from "../components/BeninMap.jsx";
+import AgirMaintenant from "../components/AgirMaintenant.jsx";
+import CompatibilityModal from "../components/CompatibilityModal.jsx";
+import ImpactStats from "../components/ImpactStats.jsx";
 import { Reveal, RevealGroup } from "../components/Reveal.jsx";
-import useCountUp from "../hooks/useCountUp.js";
+
+// Hero photo fournie par le client (portrait de donneuse à gauche +
+// pictogrammes à droite). Le cadre rouge de la source (~56px/3556) a été
+// retiré au dépôt du fichier ; la variante mobile est un recadrage dédié sur
+// le portrait (0–45% de la largeur), pas un simple object-position sur
+// l'image pleine largeur, pour garder une vraie résolution une fois zoomée.
+const HERO_IMAGE = {
+  desktop: {
+    avif: "/images/hero/hero-desktop.avif",
+    webp: "/images/hero/hero-desktop.webp",
+    fallback: "/images/hero/hero-desktop.jpg",
+    width: 2400,
+    height: 1316,
+  },
+  mobile: {
+    avif: "/images/hero/hero-mobile.avif",
+    webp: "/images/hero/hero-mobile.webp",
+    fallback: "/images/hero/hero-mobile.jpg",
+    width: 1100,
+    height: 1340,
+  },
+};
 
 const steps = [
   {
     n: "1",
     title: "Signaler le besoin",
-    body: "Un proche ou l’équipe soignante indique le groupe recherché et l’établissement. En moins d’une minute.",
+    body: "Un proche ou l’équipe soignante indique le groupe recherché et l’établissement.",
   },
   {
     n: "2",
     title: "Alerter les donneurs proches",
-    body: "Les donneurs compatibles de la même ville reçoivent l’alerte et répondent d’un geste.",
+    body: "Les donneurs compatibles de la même ville reçoivent l’alerte. Dès que le don est fait, ils le confirment sur la plateforme.",
   },
   {
     n: "3",
@@ -21,39 +45,6 @@ const steps = [
     body: "L’avancement est visible en temps réel : ouverte, en cours, pourvue. Chacun sait où en est la demande.",
   },
 ];
-
-function Stat({ target, label }) {
-  const value = useCountUp(target);
-  return (
-    <span className="flex items-baseline gap-1.5">
-      <span className="text-xl font-extrabold text-secondary">{value}</span>
-      <span className="text-xs font-medium text-muted">{label}</span>
-    </span>
-  );
-}
-
-function NetworkStrip() {
-  return (
-    <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-light bg-white/70 px-5 py-3.5 shadow-soft">
-      <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-primary-strong">
-        <span className="relative flex h-2 w-2">
-          <span
-            className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60"
-            data-decorative
-          />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-        </span>
-        Réseau actif
-      </span>
-      <Stat target={7} label="établissements reconnus" />
-      <Stat target={7} label="villes desservies" />
-      <span className="flex items-baseline gap-1.5">
-        <span className="text-xl font-extrabold text-secondary">&lt; 15&nbsp;min</span>
-        <span className="text-xs font-medium text-muted">réponse visée</span>
-      </span>
-    </div>
-  );
-}
 
 function ShieldCheck() {
   return (
@@ -101,7 +92,7 @@ const trust = [
   {
     icon: <ShieldCheck />,
     title: "Établissements reconnus par l’État",
-    body: "Une alerte ne peut cibler qu’un hôpital public officiellement reconnu — pour que le don arrive au bon endroit.",
+    body: "Une alerte ne peut cibler qu’un hôpital public officiellement reconnu — pour que le don arrive dans un endroit autorisé.",
   },
   {
     icon: <NoDirectLink />,
@@ -110,101 +101,138 @@ const trust = [
   },
 ];
 
+// rowFrom: breakpoint at which the buttons go from stacked to side-by-side.
+// The mobile hero band is full-width, so it can go side-by-side as soon as
+// there's room (sm, 640px — "pleine largeur uniquement sous 640px"). The
+// desktop hero's text column is only ~30% of the bar, so it stays stacked
+// until there's genuinely enough room for two pill buttons side by side (xl).
+function HeroCta({ isAuthenticated, rowFrom = "sm" }) {
+  const direction = rowFrom === "xl" ? "flex-col xl:flex-row" : "flex-col sm:flex-row";
+  const className = `mt-8 flex gap-3 ${direction}`;
+
+  if (isAuthenticated) {
+    return (
+      <div className={className}>
+        <Link to="/mes-demandes" className="btn-primary w-full sm:w-auto">
+          Mes demandes
+        </Link>
+        <Link to="/demandes-en-cours" className="btn-secondary w-full sm:w-auto">
+          Demandes en cours
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className={className}>
+      <Link to="/alerte" className="btn-primary w-full sm:w-auto">
+        J’ai besoin de sang
+      </Link>
+      <Link
+        to="/donneur/inscription"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-success bg-white/90 px-6 py-3 text-base font-semibold text-success transition duration-micro ease-soft-out hover:bg-white sm:w-auto"
+      >
+        Devenir donneur
+      </Link>
+    </div>
+  );
+}
+
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const [compatModalOpen, setCompatModalOpen] = useState(false);
+  const compatTriggerRef = useRef(null);
 
   return (
     <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-primary/[0.05] via-white to-light">
-        <div
-          className="pointer-events-none absolute right-[-10%] top-[-20%] h-[32rem] w-[32rem] rounded-full bg-primary/10 blur-3xl"
-          aria-hidden="true"
-          data-decorative
-        />
-        <RevealGroup className="relative mx-auto grid max-w-5xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-10 lg:px-8">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary-strong">
-              <span className="relative flex h-2 w-2">
-                <span
-                  className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60"
-                  data-decorative
-                />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              Alerte transfusionnelle · Bénin
-            </span>
-
-            <h1 className="mt-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-secondary sm:text-5xl">
-              Un donneur de sang compatible,{" "}
-              <span className="text-primary">près de l’hôpital</span>, en quelques
-              minutes.
+      {/* Hero — id porté par ce wrapper (pas par les <section> mobile/desktop
+          elles-mêmes : un seul des deux blocs est visible à la fois via CSS,
+          mais les deux existent dans le DOM en même temps — un id répété sur
+          les deux serait invalide en HTML). */}
+      <div id="hero" className="scroll-mt-[72px]">
+        {/* Hero — mobile (<768px): portrait crop only, text in a solid band
+            below the photo (the 36–68% safe band the image reserves for
+            text becomes too narrow to hold on a cropped mobile frame). */}
+        <section className="relative isolate overflow-hidden bg-secondary md:hidden">
+          <div className="relative h-[50svh] min-h-[320px] max-h-[480px] w-full overflow-hidden">
+            <picture>
+              <source srcSet={HERO_IMAGE.mobile.avif} type="image/avif" />
+              <source srcSet={HERO_IMAGE.mobile.webp} type="image/webp" />
+              <img
+                src={HERO_IMAGE.mobile.fallback}
+                alt=""
+                aria-hidden="true"
+                width={HERO_IMAGE.mobile.width}
+                height={HERO_IMAGE.mobile.height}
+                fetchpriority="high"
+                loading="eager"
+                className="h-full w-full object-cover object-center"
+              />
+            </picture>
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-secondary to-transparent"
+            />
+          </div>
+          <Reveal className="bg-gradient-to-b from-secondary to-secondary/95 px-4 py-10">
+            <h1 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-white">
+              Le bon donneur, au bon endroit, au bon moment.
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-muted">
-              SOS Sang 229 prévient les donneurs compatibles de la ville de
-              l’établissement et vous aide à suivre la demande jusqu’au don.
+            <p className="mt-4 text-base leading-7 text-white/85">
+              Quand un établissement hospitalier ou un patient manque de sang,
+              chaque minute compte. Inscrivez-vous et recevez une alerte
+              uniquement lorsque votre groupe sanguin est recherché à
+              proximité.
             </p>
+            <HeroCta isAuthenticated={isAuthenticated} />
+          </Reveal>
+        </section>
 
-            {isAuthenticated ? (
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link to="/mes-demandes" className="btn-primary w-full sm:w-auto">
-                  Mes demandes
-                </Link>
-                <Link
-                  to="/demandes-en-cours"
-                  className="btn-secondary w-full sm:w-auto"
-                >
-                  Demandes en cours
-                </Link>
-              </div>
-            ) : (
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link to="/alerte" className="btn-primary w-full sm:w-auto">
-                  J’ai besoin de sang
-                </Link>
-                <Link
-                  to="/donneur/inscription"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-success px-6 py-3 text-base font-semibold text-success transition duration-micro ease-soft-out hover:bg-success/5 sm:w-auto"
-                >
-                  Devenir donneur
-                </Link>
-              </div>
-            )}
-
-            <NetworkStrip />
+        {/* Hero — desktop/tablet (≥768px): full-bleed photo, text confined
+            to the 36–68% safe band (pl-[38%] / pr-[32%] ⇒ a ~30%-wide
+            column starting just right of center), never centered on the
+            whole hero and never left-aligned to 0 — both would land on the
+            portrait or the icons. */}
+        <section className="relative isolate hidden overflow-hidden bg-secondary md:block">
+          <div className="absolute inset-0">
+            <picture>
+              <source srcSet={HERO_IMAGE.desktop.avif} type="image/avif" />
+              <source srcSet={HERO_IMAGE.desktop.webp} type="image/webp" />
+              <img
+                src={HERO_IMAGE.desktop.fallback}
+                alt=""
+                aria-hidden="true"
+                width={HERO_IMAGE.desktop.width}
+                height={HERO_IMAGE.desktop.height}
+                fetchpriority="high"
+                loading="eager"
+                className="h-full w-full object-cover"
+              />
+            </picture>
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-b from-secondary/45 via-secondary/45 to-secondary/70"
+            />
           </div>
 
-          <div className="relative mx-auto w-full max-w-sm">
-            <div className="card p-4 sm:p-6">
-              <BeninMap className="mx-auto max-h-[26rem]" />
-              <p className="mt-3 flex items-center justify-center gap-2 font-mono text-xs text-muted">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                Cotonou · alerte en cours · 2 donneurs prévenus
+          <RevealGroup className="relative flex min-h-[max(560px,calc(100svh-72px))] w-full items-center pl-[38%] pr-[32%] py-16">
+            <div>
+              <h1 className="text-[2.5rem] font-extrabold leading-[1.15] tracking-tight text-white lg:text-[2.75rem]">
+                Le bon donneur, au bon endroit, au bon moment.
+              </h1>
+              <p className="mt-5 text-base leading-7 text-white/85">
+                Quand un établissement hospitalier ou un patient manque de
+                sang, chaque minute compte. Inscrivez-vous et recevez une
+                alerte uniquement lorsque votre groupe sanguin est recherché
+                à proximité.
               </p>
+              <HeroCta isAuthenticated={isAuthenticated} rowFrom="xl" />
             </div>
-          </div>
-        </RevealGroup>
-      </section>
-
-      {/* Confiance */}
-      <section className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8">
-        <RevealGroup className="grid gap-4 sm:grid-cols-2">
-          {trust.map((item) => (
-            <div key={item.title} className="card flex gap-4">
-              <span className="shrink-0 text-primary-strong">{item.icon}</span>
-              <div>
-                <h2 className="text-base font-bold text-secondary">
-                  {item.title}
-                </h2>
-                <p className="mt-1.5 text-sm leading-6 text-muted">{item.body}</p>
-              </div>
-            </div>
-          ))}
-        </RevealGroup>
-      </section>
+          </RevealGroup>
+        </section>
+      </div>
 
       {/* Comment ça marche */}
-      <section className="bg-light/70">
+      <section id="comment-ca-marche" className="scroll-mt-[72px] bg-light">
         <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
           <Reveal>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-strong">
@@ -230,6 +258,59 @@ export default function Home() {
           </RevealGroup>
         </div>
       </section>
+
+      <ImpactStats />
+
+      <AgirMaintenant />
+
+      {/* Confiance — sa propre section (id + un h3 par carte, pas de h2 :
+          les deux cartes sont deux blocs équivalents côte à côte, sans titre
+          d'ensemble fourni ; un h2 par carte aurait laissé deux h2 dans la
+          même section). Fond blanc, entre le gris clair d'"Agir maintenant"
+          et le gris clair de "Testez votre compatibilité". */}
+      <section id="confiance" className="scroll-mt-[72px] bg-white px-4 py-14 sm:px-6 lg:px-8">
+        <RevealGroup className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2">
+          {trust.map((item) => (
+            <div key={item.title} className="card flex gap-4">
+              <span className="shrink-0 text-primary-strong">{item.icon}</span>
+              <div>
+                <h3 className="text-base font-bold text-secondary">
+                  {item.title}
+                </h3>
+                <p className="mt-1.5 text-sm leading-6 text-muted">{item.body}</p>
+              </div>
+            </div>
+          ))}
+        </RevealGroup>
+      </section>
+
+      {/* Testez votre compatibilité — fond gris clair : la section
+          "Confiance" juste au-dessus est blanche, donc le gris garde
+          l'alternance blanc/gris/rouge plutôt que deux blocs blancs
+          consécutifs. */}
+      <section id="compatibilite" className="scroll-mt-[72px] bg-light py-14">
+        <Reveal className="mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-extrabold tracking-tight text-secondary sm:text-3xl">
+            Un doute sur votre compatibilité avec le groupe sanguin d’un
+            proche ?
+          </h2>
+          <button
+            ref={compatTriggerRef}
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setCompatModalOpen(true)}
+            className="btn-primary mt-6"
+          >
+            Testez ici
+          </button>
+        </Reveal>
+      </section>
+
+      <CompatibilityModal
+        open={compatModalOpen}
+        onClose={() => setCompatModalOpen(false)}
+        returnFocusRef={compatTriggerRef}
+      />
 
       {/* CTA */}
       <section className="bg-gradient-to-r from-primary to-primary-dark">

@@ -1,7 +1,10 @@
 """Matching rules: ABO/Rh compatibility, GPS radius, city fallback."""
 
+import json
+from pathlib import Path
 from uuid import uuid4
 
+import pytest
 from sqlalchemy.orm import Session
 
 from app.enums import BloodGroup, MatchMethod
@@ -14,6 +17,27 @@ from app.matching import (
 )
 from app.models import Donor, Hospital
 from app.schemas.common import GeoPoint
+
+# Textbook ABO/Rh rule, derived independently from `_COMPATIBLE_DONORS` so this
+# test can't just be checking the table against itself: a donor's red cells
+# are compatible when the recipient's plasma carries no antibody against them
+# (ABO) and the recipient can accept the donor's Rh(D) status.
+_ABO_ACCEPTS: dict[str, set[str]] = {
+    "O": {"O", "A", "B", "AB"},
+    "A": {"A", "AB"},
+    "B": {"B", "AB"},
+    "AB": {"AB"},
+}
+
+
+def _expected_compatible(donor: BloodGroup, recipient: BloodGroup) -> bool:
+    donor_abo, donor_rh = donor.value[:-1], donor.value[-1]
+    recipient_abo, recipient_rh = recipient.value[:-1], recipient.value[-1]
+    if recipient_abo not in _ABO_ACCEPTS[donor_abo]:
+        return False
+    if donor_rh == "+" and recipient_rh == "-":
+        return False
+    return True
 
 
 def test_parse_point_accepts_wkt_and_ewkt() -> None:
@@ -44,6 +68,57 @@ def test_o_positive_does_not_receive_a_positive() -> None:
     assert BloodGroup.A_POSITIVE not in groups
     assert BloodGroup.O_NEGATIVE in groups
     assert BloodGroup.O_POSITIVE in groups
+
+
+@pytest.mark.parametrize("donor", list(BloodGroup))
+@pytest.mark.parametrize("recipient", list(BloodGroup))
+def test_all_64_donor_recipient_combinations(
+    donor: BloodGroup, recipient: BloodGroup
+) -> None:
+    """Every (donor, recipient) pair matches the standard ABO/Rh rule.
+
+    Covers the same lookup the "Testez votre compatibilité" modal and the
+    urgency matching both rely on (`compatible_donor_groups`), so a bug here
+    would surface in both places at once.
+    """
+    actual = donor in compatible_donor_groups(recipient)
+    assert actual == _expected_compatible(donor, recipient), (
+        f"{donor.value} -> {recipient.value}: expected "
+        f"{_expected_compatible(donor, recipient)}, got {actual}"
+    )
+
+
+def test_generated_frontend_table_matches_compatible_donor_groups() -> None:
+    """Guards against a stale `bloodCompatibility.generated.json`.
+
+    That file is a static export of this same table for the frontend
+    compatibility-test modal (no API call from the browser). If someone edits
+    `_COMPATIBLE_DONORS` without re-running
+    `scripts/export_blood_compatibility.py`, this test fails instead of the
+    browser silently serving an outdated rule.
+    """
+    json_path = (
+        Path(__file__).resolve().parents[2]
+        / "frontend"
+        / "src"
+        / "data"
+        / "bloodCompatibility.generated.json"
+    )
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    expected = {
+        (pair["donor"], pair["recipient"]): pair["compatible"]
+        for pair in payload["pairs"]
+    }
+    assert len(expected) == 64
+    for recipient in BloodGroup:
+        donors = compatible_donor_groups(recipient)
+        for donor in BloodGroup:
+            key = (donor.value, recipient.value)
+            assert expected[key] == (donor in donors), (
+                f"{json_path.name} is stale for {donor.value} -> "
+                f"{recipient.value}; re-run "
+                "scripts/export_blood_compatibility.py"
+            )
 
 
 def test_gps_match_inside_radius() -> None:
