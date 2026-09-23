@@ -4,13 +4,14 @@ import { ApiError, api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { requestPosition } from "../lib/geolocation.js";
 import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
+import useCities from "../hooks/useCities.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import RequiredMark from "../components/RequiredMark.jsx";
+import Skeleton from "../components/Skeleton.jsx";
 import SubmitButton from "../components/SubmitButton.jsx";
-import { DEMO_CITIES } from "../data/demo.js";
 
 const INITIAL = {
   displayName: "",
@@ -31,6 +32,7 @@ export default function DonorRegistration({ onToast }) {
   const [geo, setGeo] = useState(GEO_INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const { cities, state: citiesState, reload: reloadCities } = useCities();
 
   const canSubmit = Boolean(
     form.bloodGroup &&
@@ -261,20 +263,42 @@ export default function DonorRegistration({ onToast }) {
               Ville / zone{" "}
               <RequiredMark valid={Boolean(form.city)} />
             </label>
-            <select
-              id="city"
-              className="field-input"
-              value={form.city}
-              onChange={update("city")}
-              required
-            >
-              <option value="">Choisir votre zone</option>
-              {DEMO_CITIES.map((city) => (
-                <option key={city} value={city}>
-                  {city}
+            {citiesState === "loading" ? (
+              <Skeleton className="h-[54px] w-full" />
+            ) : (
+              <select
+                id="city"
+                className="field-input"
+                value={form.city}
+                onChange={update("city")}
+                required
+              >
+                <option value="">
+                  {cities.length === 0 && citiesState !== "error"
+                    ? "Aucune ville disponible pour le moment"
+                    : "Choisir votre zone"}
                 </option>
-              ))}
-            </select>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+            )}
+            {citiesState === "error" ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  className="btn-secondary px-4 py-2 text-sm"
+                  onClick={reloadCities}
+                >
+                  Recharger la liste
+                </button>
+                <span className="text-sm text-muted">
+                  La liste n’a pas pu être chargée.
+                </span>
+              </div>
+            ) : null}
           </div>
 
           <fieldset className="rounded-2xl bg-light px-5 py-4">
