@@ -74,37 +74,66 @@ def build_urgency_sms(
     )
 
 
-def send_live_twilio_sms(
+import httpx
+
+def send_live_robase_sms(
     *,
     to_phone: str,
     message: str,
-    account_sid: str,
-    auth_token: str,
-    from_number: str,
+    api_key: str,
+    sender_id: str,
 ) -> SmsSendResult:
-    """Live Twilio hook.
-
-    Isolated so tests can assert it is never called in simulate mode.
-    This MVP does not open a network socket even when selected.
-    Credentials and full phones must not be logged.
-    """
-    del account_sid, auth_token, from_number, message
-    logger.warning(
-        "SMS live stub invoked for %s (no Twilio HTTP, live send not implemented)",
-        mask_phone(to_phone),
-    )
-    return SmsSendResult(
-        ok=False,
-        simulated=False,
-        channel=CHANNEL_LIVE,
-        mode=SMS_MODE_LIVE,
-        status=STATUS_FAILED,
-        error="live_not_implemented",
-    )
+    """Live Robase API implementation."""
+    url = "https://api.robase.dev/v1/sms/send"
+    
+    # Using httpx synchronously since this function runs synchronously,
+    # or you can use a fire-and-forget background task in the router.
+    # For MVP we keep it simple blocking request.
+    try:
+        response = httpx.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "phone_number": to_phone,
+                "message": message,
+                "sender": sender_id,
+            },
+            timeout=10.0
+        )
+        response.raise_for_status()
+        
+        logger.info(
+            "SMS live Robase success for %s",
+            mask_phone(to_phone),
+        )
+        return SmsSendResult(
+            ok=True,
+            simulated=False,
+            channel=CHANNEL_LIVE,
+            mode=SMS_MODE_LIVE,
+            status=STATUS_SENT,
+        )
+    except Exception as e:
+        logger.error(
+            "SMS live Robase failed for %s: %s",
+            mask_phone(to_phone),
+            str(e)
+        )
+        return SmsSendResult(
+            ok=False,
+            simulated=False,
+            channel=CHANNEL_LIVE,
+            mode=SMS_MODE_LIVE,
+            status=STATUS_FAILED,
+            error=str(e),
+        )
 
 
 class SimulateSmsSender:
-    """Records a simulated success. Never calls Twilio."""
+    """Records a simulated success. Never hits network."""
 
     def send_urgency_sms(self, to_phone: str, message: str) -> SmsSendResult:
         del message
@@ -121,26 +150,25 @@ class SimulateSmsSender:
         )
 
 
-class LiveTwilioSender:
-    """Gated live path. Instantiated only when live + credentials are set."""
+class LiveRobaseSender:
+    """Gated live path for Robase."""
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
     def send_urgency_sms(self, to_phone: str, message: str) -> SmsSendResult:
-        return send_live_twilio_sms(
+        return send_live_robase_sms(
             to_phone=to_phone,
             message=message,
-            account_sid=self._settings.twilio_account_sid,
-            auth_token=self._settings.twilio_auth_token.get_secret_value(),
-            from_number=self._settings.twilio_from_number,
+            api_key=self._settings.robase_api_key.get_secret_value(),
+            sender_id=self._settings.robase_sender_id,
         )
 
 
 def get_sms_sender(settings: Settings | None = None) -> SmsSender:
     cfg = settings or get_settings()
     if cfg.sms_live_enabled():
-        return LiveTwilioSender(cfg)
+        return LiveRobaseSender(cfg)
     return SimulateSmsSender()
 
 

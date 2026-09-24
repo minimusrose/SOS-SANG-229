@@ -64,12 +64,11 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
-    # SMS: default simulate — no Twilio network. Live stays off unless
-    # SMS_MODE=live AND all TWILIO_* credentials are present.
+    # SMS: default simulate — no Robase network. Live stays off unless
+    # SMS_MODE=live AND ROBASE_API_KEY is present.
     sms_mode: str = SMS_MODE_SIMULATE
-    twilio_account_sid: str = ""
-    twilio_auth_token: SecretStr = SecretStr("")
-    twilio_from_number: str = ""
+    robase_api_key: SecretStr = SecretStr("")
+    robase_sender_id: str = "SOSSANG"
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -112,15 +111,12 @@ class Settings(BaseSettings):
             )
         return self._DEV_JWT_SECRET
 
-    def twilio_credentials_present(self) -> bool:
-        sid = (self.twilio_account_sid or "").strip()
-        token = self.twilio_auth_token.get_secret_value().strip()
-        sender = (self.twilio_from_number or "").strip()
-        return bool(sid and token and sender)
+    def robase_credentials_present(self) -> bool:
+        return bool(self.robase_api_key.get_secret_value().strip())
 
     def sms_live_enabled(self) -> bool:
         """True only when live is explicitly requested and credentials exist."""
-        return self.sms_mode == SMS_MODE_LIVE and self.twilio_credentials_present()
+        return self.sms_mode == SMS_MODE_LIVE and self.robase_credentials_present()
 
     def effective_sms_mode(self) -> str:
         return SMS_MODE_LIVE if self.sms_live_enabled() else SMS_MODE_SIMULATE
