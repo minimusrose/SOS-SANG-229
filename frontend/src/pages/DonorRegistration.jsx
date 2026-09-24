@@ -4,7 +4,7 @@ import { ApiError, api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { requestPosition } from "../lib/geolocation.js";
 import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
-import useCities from "../hooks/useCities.js";
+import { BENIN_COMMUNES_BY_DEPARTEMENT, DEPARTEMENTS } from "../lib/benin.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
@@ -18,6 +18,7 @@ const INITIAL = {
   phone: "",
   password: "",
   bloodGroup: "",
+  department: "",
   city: "",
   gpsConsent: false,
 };
@@ -32,10 +33,12 @@ export default function DonorRegistration({ onToast }) {
   const [geo, setGeo] = useState(GEO_INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
-  const { cities, state: citiesState, reload: reloadCities } = useCities();
+
+  const communes = form.department ? BENIN_COMMUNES_BY_DEPARTEMENT[form.department] || [] : [];
 
   const canSubmit = Boolean(
     form.bloodGroup &&
+      form.department &&
       form.city &&
       (!needsAccount ||
         (form.displayName.trim() &&
@@ -47,7 +50,14 @@ export default function DonorRegistration({ onToast }) {
     return (event) => {
       const value =
         event.target.type === "checkbox" ? event.target.checked : event.target.value;
-      setForm((current) => ({ ...current, [field]: value }));
+      
+      setForm((current) => {
+        const next = { ...current, [field]: value };
+        if (field === "department") {
+          next.city = ""; // Reset commune when department changes
+        }
+        return next;
+      });
     };
   }
 
@@ -258,47 +268,51 @@ export default function DonorRegistration({ onToast }) {
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="city" className="field-label">
-              Ville / zone{" "}
-              <RequiredMark valid={Boolean(form.city)} />
-            </label>
-            {citiesState === "loading" ? (
-              <Skeleton className="h-[54px] w-full" />
-            ) : (
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="department" className="field-label">
+                Département{" "}
+                <RequiredMark valid={Boolean(form.department)} />
+              </label>
+              <select
+                id="department"
+                className="field-input"
+                value={form.department}
+                onChange={update("department")}
+                required
+              >
+                <option value="">Choisir un département</option>
+                {DEPARTEMENTS.map((dep) => (
+                  <option key={dep} value={dep}>
+                    {dep}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="city" className="field-label">
+                Commune{" "}
+                <RequiredMark valid={Boolean(form.city)} />
+              </label>
               <select
                 id="city"
                 className="field-input"
                 value={form.city}
                 onChange={update("city")}
+                disabled={!form.department}
                 required
               >
                 <option value="">
-                  {cities.length === 0 && citiesState !== "error"
-                    ? "Aucune ville disponible pour le moment"
-                    : "Choisir votre zone"}
+                  {form.department ? "Choisir une commune" : "Sélectionnez d'abord un département"}
                 </option>
-                {cities.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
+                {communes.map((commune) => (
+                  <option key={commune} value={commune}>
+                    {commune}
                   </option>
                 ))}
               </select>
-            )}
-            {citiesState === "error" ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  className="btn-secondary px-4 py-2 text-sm"
-                  onClick={reloadCities}
-                >
-                  Recharger la liste
-                </button>
-                <span className="text-sm text-muted">
-                  La liste n’a pas pu être chargée.
-                </span>
-              </div>
-            ) : null}
+            </div>
           </div>
 
           <fieldset className="rounded-2xl bg-light px-5 py-4">
