@@ -272,6 +272,22 @@ def _hospital_id(name: str):
 
 def main() -> None:
     session = get_session_factory()()
+    
+    # Clean up duplicates that might have been inserted by seed_demo.py
+    hospitals = session.scalars(select(Hospital)).all()
+    seen = set()
+    to_delete = []
+    for h in hospitals:
+        if h.name in seen:
+            to_delete.append(h)
+        else:
+            seen.add(h.name)
+    for h in to_delete:
+        session.delete(h)
+    session.commit()
+    if to_delete:
+        print(f"Removed {len(to_delete)} duplicate hospitals.")
+        
     inserted = 0
     updated = 0
     try:

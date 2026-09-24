@@ -4,7 +4,7 @@ import { ApiError, api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { requestPosition } from "../lib/geolocation.js";
 import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
-import { BENIN_COMMUNES_BY_DEPARTEMENT, DEPARTEMENTS } from "../lib/benin.js";
+import { BENIN_COMMUNES_BY_DEPARTEMENT } from "../lib/benin.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
@@ -18,12 +18,16 @@ const INITIAL = {
   phone: "",
   password: "",
   bloodGroup: "",
-  department: "",
   city: "",
   gpsConsent: false,
 };
 
 const GEO_INITIAL = { status: "idle", coords: null, code: null };
+
+// Create a flat sorted list of all 77 communes
+const ALL_COMMUNES = Object.values(BENIN_COMMUNES_BY_DEPARTEMENT)
+  .flat()
+  .sort((a, b) => a.localeCompare(b, "fr"));
 
 export default function DonorRegistration({ onToast }) {
   const { user, register, refreshMe } = useAuth();
@@ -34,11 +38,8 @@ export default function DonorRegistration({ onToast }) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
 
-  const communes = form.department ? BENIN_COMMUNES_BY_DEPARTEMENT[form.department] || [] : [];
-
   const canSubmit = Boolean(
     form.bloodGroup &&
-      form.department &&
       form.city &&
       (!needsAccount ||
         (form.displayName.trim() &&
@@ -51,13 +52,7 @@ export default function DonorRegistration({ onToast }) {
       const value =
         event.target.type === "checkbox" ? event.target.checked : event.target.value;
       
-      setForm((current) => {
-        const next = { ...current, [field]: value };
-        if (field === "department") {
-          next.city = ""; // Reset commune when department changes
-        }
-        return next;
-      });
+      setForm((current) => ({ ...current, [field]: value }));
     };
   }
 
@@ -268,51 +263,25 @@ export default function DonorRegistration({ onToast }) {
             />
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="department" className="field-label">
-                Département{" "}
-                <RequiredMark valid={Boolean(form.department)} />
-              </label>
-              <select
-                id="department"
-                className="field-input"
-                value={form.department}
-                onChange={update("department")}
-                required
-              >
-                <option value="">Choisir un département</option>
-                {DEPARTEMENTS.map((dep) => (
-                  <option key={dep} value={dep}>
-                    {dep}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="city" className="field-label">
-                Commune{" "}
-                <RequiredMark valid={Boolean(form.city)} />
-              </label>
-              <select
-                id="city"
-                className="field-input"
-                value={form.city}
-                onChange={update("city")}
-                disabled={!form.department}
-                required
-              >
-                <option value="">
-                  {form.department ? "Choisir une commune" : "Sélectionnez d'abord un département"}
+          <div className="space-y-2">
+            <label htmlFor="city" className="field-label">
+              Ville / Commune{" "}
+              <RequiredMark valid={Boolean(form.city)} />
+            </label>
+            <select
+              id="city"
+              className="field-input"
+              value={form.city}
+              onChange={update("city")}
+              required
+            >
+              <option value="">Choisir votre commune</option>
+              {ALL_COMMUNES.map((commune) => (
+                <option key={commune} value={commune}>
+                  {commune}
                 </option>
-                {communes.map((commune) => (
-                  <option key={commune} value={commune}>
-                    {commune}
-                  </option>
-                ))}
-              </select>
-            </div>
+              ))}
+            </select>
           </div>
 
           <fieldset className="rounded-2xl bg-light px-5 py-4">
