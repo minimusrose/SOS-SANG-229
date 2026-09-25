@@ -92,7 +92,7 @@ const trust = [
   {
     icon: <ShieldCheck />,
     title: "Établissements reconnus par l’État",
-    body: "Une alerte ne peut cibler qu’un hôpital public officiellement reconnu — pour que le don arrive dans un endroit autorisé.",
+    body: "Une alerte ne peut cibler qu’une structure hospitalière officiellement reconnue — pour que le don arrive dans un endroit autorisé.",
   },
   {
     icon: <NoDirectLink />,

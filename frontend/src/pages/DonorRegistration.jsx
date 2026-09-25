@@ -3,14 +3,19 @@ import { Link } from "react-router-dom";
 import { ApiError, api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { requestPosition } from "../lib/geolocation.js";
-import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
-import { BENIN_COMMUNES_BY_DEPARTEMENT } from "../lib/benin.js";
+import {
+  PHONE_FORMAT_ERROR,
+  isValidBeninPhone,
+  stripPhoneSpaces,
+} from "../lib/validation.js";
+import { ALL_COMMUNES } from "../lib/benin.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
+import FieldError from "../components/FieldError.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import RequiredMark from "../components/RequiredMark.jsx";
-import Skeleton from "../components/Skeleton.jsx";
+import SearchableSelect from "../components/SearchableSelect.jsx";
 import SubmitButton from "../components/SubmitButton.jsx";
 
 const INITIAL = {
@@ -25,11 +30,6 @@ const INITIAL = {
 
 const GEO_INITIAL = { status: "idle", coords: null, code: null };
 
-// Create a flat sorted list of all 77 communes
-const ALL_COMMUNES = Object.values(BENIN_COMMUNES_BY_DEPARTEMENT)
-  .flat()
-  .sort((a, b) => a.localeCompare(b, "fr"));
-
 export default function DonorRegistration({ onToast }) {
   const { user, register, refreshMe } = useAuth();
   const needsAccount = !user;
@@ -38,6 +38,8 @@ export default function DonorRegistration({ onToast }) {
   const [geo, setGeo] = useState(GEO_INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [phoneConflict, setPhoneConflict] = useState(false);
 
   const canSubmit = Boolean(
     form.bloodGroup &&
@@ -45,7 +47,7 @@ export default function DonorRegistration({ onToast }) {
       form.legalConsent &&
       (!needsAccount ||
         (form.displayName.trim() &&
-          form.phone.trim() &&
+          isValidBeninPhone(form.phone) &&
           form.password.length >= 8)),
   );
 
@@ -56,6 +58,11 @@ export default function DonorRegistration({ onToast }) {
       
       setForm((current) => ({ ...current, [field]: value }));
     };
+  }
+
+  function handlePhoneChange(event) {
+    setForm((current) => ({ ...current, phone: stripPhoneSpaces(event.target.value) }));
+    if (phoneConflict) setPhoneConflict(false);
   }
 
   async function handleGpsToggle(event) {
@@ -78,19 +85,27 @@ export default function DonorRegistration({ onToast }) {
     event.preventDefault();
     if (!canSubmit || submitting) return;
 
-    if (needsAccount && !isValidPhone(form.phone)) {
-      onToast(PHONE_ERROR);
+    if (needsAccount && !isValidBeninPhone(form.phone)) {
+      setPhoneTouched(true);
       return;
     }
 
     setSubmitting(true);
     try {
       if (needsAccount) {
-        await register({
-          phone: form.phone.trim(),
-          password: form.password,
-          display_name: form.displayName.trim(),
-        });
+        try {
+          await register({
+            phone: form.phone,
+            password: form.password,
+            display_name: form.displayName.trim(),
+          });
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 409) {
+            setPhoneConflict(true);
+            return;
+          }
+          throw error;
+        }
       }
       const created = await api.createDonor({
         blood_group: form.bloodGroup,
@@ -213,7 +228,7 @@ export default function DonorRegistration({ onToast }) {
               <div className="space-y-2">
                 <label htmlFor="phone" className="field-label">
                   Téléphone{" "}
-                  <RequiredMark valid={isValidPhone(form.phone)} />
+                  <RequiredMark valid={isValidBeninPhone(form.phone)} />
                 </label>
                 <input
                   id="phone"
@@ -221,14 +236,40 @@ export default function DonorRegistration({ onToast }) {
                   inputMode="tel"
                   className="field-input"
                   value={form.phone}
-                  onChange={update("phone")}
+                  onChange={handlePhoneChange}
+                  onBlur={() => setPhoneTouched(true)}
                   placeholder="+229 XX XX XX XX XX"
                   autoComplete="username"
+                  aria-invalid={
+                    phoneTouched && form.phone && !isValidBeninPhone(form.phone)
+                  }
                   required
                 />
                 <p className="field-hint">
                   Sert d’identifiant de connexion et pour vous prévenir.
                 </p>
+                <FieldError
+                  message={
+                    phoneTouched && form.phone && !isValidBeninPhone(form.phone)
+                      ? PHONE_FORMAT_ERROR
+                      : ""
+                  }
+                />
+                {phoneConflict ? (
+                  <div className="flex flex-col gap-2 rounded-2xl bg-primary/5 px-4 py-3 text-sm leading-6 text-secondary sm:flex-row sm:items-center sm:justify-between">
+                    <p>
+                      Ce numéro est déjà associé à un compte. Connectez-vous
+                      plutôt.
+                    </p>
+                    <Link
+                      to="/connexion"
+                      state={{ phone: form.phone }}
+                      className="btn-secondary shrink-0 px-4 py-2 text-sm"
+                    >
+                      Se connecter
+                    </Link>
+                  </div>
+                ) : null}
               </div>
 
               <div className="space-y-2">
@@ -265,26 +306,19 @@ export default function DonorRegistration({ onToast }) {
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="city" className="field-label">
-              Ville / Commune{" "}
-              <RequiredMark valid={Boolean(form.city)} />
-            </label>
-            <select
-              id="city"
-              className="field-input"
-              value={form.city}
-              onChange={update("city")}
-              required
-            >
-              <option value="">Choisir votre commune</option>
-              {ALL_COMMUNES.map((commune) => (
-                <option key={commune} value={commune}>
-                  {commune}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            id="city"
+            label="Ville / Commune"
+            labelExtra={<RequiredMark valid={Boolean(form.city)} />}
+            value={form.city}
+            onChange={(commune) =>
+              setForm((current) => ({ ...current, city: commune }))
+            }
+            options={ALL_COMMUNES}
+            placeholder="Tapez pour rechercher votre commune"
+            showAllOption={false}
+            required
+          />
 
           <fieldset className="rounded-2xl bg-light px-5 py-4">
             <legend className="px-1 text-sm font-bold text-secondary">

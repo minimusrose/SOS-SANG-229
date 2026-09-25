@@ -40,10 +40,11 @@ export function getAuthToken() {
 }
 
 export class ApiError extends Error {
-  constructor(message, status = 0) {
+  constructor(message, status = 0, code = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -61,7 +62,20 @@ function messageFromDetail(data) {
       .filter(Boolean);
     return messages.join(" ") || "Requête invalide.";
   }
+  if (detail && typeof detail === "object" && typeof detail.message === "string") {
+    return detail.message;
+  }
   return "Une erreur est survenue. Réessayez.";
+}
+
+/** Structured error code (e.g. "duplicate_patient_alert") when the backend
+ * sends an object-shaped `detail`; null for every other error shape. */
+function codeFromDetail(data) {
+  const detail = data && data.detail;
+  if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+    return typeof detail.code === "string" ? detail.code : null;
+  }
+  return null;
 }
 
 export async function apiRequest(path, options = {}) {
@@ -90,7 +104,7 @@ export async function apiRequest(path, options = {}) {
       setAuthToken(null);
       if (onUnauthorized) onUnauthorized();
     }
-    throw new ApiError(messageFromDetail(data), response.status);
+    throw new ApiError(messageFromDetail(data), response.status, codeFromDetail(data));
   }
   return data;
 }

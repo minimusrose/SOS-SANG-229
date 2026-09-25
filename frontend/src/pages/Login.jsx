@@ -12,7 +12,10 @@ export default function Login({ onToast }) {
   const location = useLocation();
   const from = location.state?.from || "/mes-demandes";
 
-  const [form, setForm] = useState({ phone: "", password: "" });
+  const [form, setForm] = useState({
+    phone: location.state?.phone || "",
+    password: "",
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const canSubmit = Boolean(form.phone.trim() && form.password);

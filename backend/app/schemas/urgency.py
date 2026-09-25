@@ -120,10 +120,18 @@ class MyRequestSummary(UrgencySummary):
 
 
 class MatchedRequestSummary(UrgencySummary):
-    """A request the current account was matched to, as a donor."""
+    """A request visible to the current account as a potential donor (all
+    open platform requests except the account's own)."""
 
     blood_group_needed: BloodGroup = Field(description=SENSITIVE_NOTE)
     i_confirmed: bool = False
+    is_matched: bool = Field(
+        default=False,
+        description=(
+            "True only if this donor was actually matched/alerted for this "
+            "request (donations can only be confirmed for matched requests)."
+        ),
+    )
 
 
 class UrgencyTrackingRead(BaseModel):
