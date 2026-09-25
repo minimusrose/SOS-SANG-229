@@ -9,9 +9,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
+from app.config import get_settings
 from app.db import get_db
 from app.enums import DonationStatus, UrgencyStatus
-from app.models import DonationConfirmation, Donor, UrgencyMatch, UrgencyRequest, User
+from app.matching import is_donor_currently_matched
+from app.models import DonationConfirmation, Donor, UrgencyRequest, User
 from app.schemas.donation import DonationConfirmationCreate, DonationConfirmationRead
 
 router = APIRouter(prefix="/donations", tags=["donations"])
@@ -54,19 +56,17 @@ def confirm_donation(
             detail="Cannot confirm a donation on a cancelled urgency.",
         )
 
-    matched_id = db.scalar(
-        select(UrgencyMatch.id)
-        .where(
-            UrgencyMatch.urgency_request_id == urgency.id,
-            UrgencyMatch.donor_id == donor.id,
+    radius = get_settings().match_radius_meters
+    if not is_donor_currently_matched(
+        donor, urgency.hospital, urgency.blood_group_needed, radius
+    ):
+        detail = (
+            "You are marked unavailable; update your donor profile to confirm "
+            "a donation."
+            if not donor.is_available
+            else "You are not currently matched to this request."
         )
-        .limit(1)
-    )
-    if matched_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You were not matched to this request.",
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
     existing = db.scalars(
         select(DonationConfirmation).where(

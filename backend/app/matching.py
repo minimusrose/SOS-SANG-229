@@ -161,6 +161,28 @@ def _find_in_python(
     return matched
 
 
+def is_donor_currently_matched(
+    donor: Donor,
+    hospital: Hospital,
+    blood_group_needed: BloodGroup,
+    radius_meters: int = DEFAULT_RADIUS_METERS,
+) -> bool:
+    """Live compatibility check for one donor against one urgency, using the
+    donor's CURRENT profile (blood group, city, GPS, availability) rather
+    than the UrgencyMatch snapshot taken when the alert was created. Callers
+    that need to know "can this donor confirm right now" (the donor list's
+    confirm button, POST /donations) should use this instead of querying
+    UrgencyMatch — it changes live as the donor edits their profile. The
+    UrgencyMatch table itself is untouched: it stays the historical record
+    of who was actually SMS-alerted at creation time.
+    """
+    if not donor.is_available:
+        return False
+    if donor.blood_group not in compatible_donor_groups(blood_group_needed):
+        return False
+    return _classify_loaded_donor(donor, hospital, radius_meters) is not None
+
+
 def _classify_loaded_donor(
     donor: Donor,
     hospital: Hospital,

@@ -587,6 +587,20 @@ def test_unavailable_donor_is_excluded_from_matching(
     )
     assert back.json()["is_available"] is True
 
+    # No UrgencyMatch row exists (the donor was unavailable at creation, so
+    # find_compatible_donors never selected them) — but the live check now
+    # picks them up now that they're available again, without needing one.
+    matches = client.get("/me/matches", headers=donor_acc["headers"])
+    assert matches.json()[0]["public_ref"] == "REQ-DEMO-OFF"
+    assert matches.json()[0]["is_matched"] is True
+
+    confirm = client.post(
+        "/donations",
+        json={"urgency_request_id": created.json()["id"]},
+        headers=donor_acc["headers"],
+    )
+    assert confirm.status_code == 201
+
 
 def test_full_flow_match_confirm_increments_requester_count(
     client: TestClient,
@@ -661,6 +675,139 @@ def test_full_flow_match_confirm_increments_requester_count(
 
     matches_after = client.get("/me/matches", headers=donor_acc["headers"])
     assert matches_after.json()[0]["i_confirmed"] is True
+
+
+def test_moving_city_updates_live_match_eligibility(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    """is_matched is recomputed live from the donor's current profile, not
+    frozen at alert-creation time: moving city picks up newly-proximate
+    requests and drops ones tied to the old city, with no DB row to update."""
+    hospital_a = _recognized_hospital(db_session, city="Ville A")
+    hospital_b = Hospital(
+        id=uuid4(), name="Hopital B", city="Ville B", is_recognized=True
+    )
+    db_session.add(hospital_b)
+    db_session.commit()
+
+    donor_acc = make_account(name="Donneur")
+    requester_a = make_account(name="DemandeurA")
+    requester_b = make_account(name="DemandeurB")
+
+    client.post(
+        "/donors",
+        json={"blood_group": "O-", "city": "Ville A"},
+        headers=donor_acc["headers"],
+    )
+
+    req_a = client.post(
+        "/alerts",
+        json={
+            "public_ref": "REQ-VILLE-A",
+            "blood_group_needed": "O+",
+            "patient_display_name": "A. K.",
+            "hospital_id": str(hospital_a.id),
+        },
+        headers=requester_a["headers"],
+    )
+    assert req_a.json()["alerted_donors_count"] == 1  # matched via Ville A
+
+    req_b = client.post(
+        "/alerts",
+        json={
+            "public_ref": "REQ-VILLE-B",
+            "blood_group_needed": "O+",
+            "patient_display_name": "B. L.",
+            "hospital_id": str(hospital_b.id),
+        },
+        headers=requester_b["headers"],
+    )
+    assert req_b.json()["alerted_donors_count"] == 0  # not in Ville B yet
+
+    by_ref = {
+        row["public_ref"]: row
+        for row in client.get("/me/matches", headers=donor_acc["headers"]).json()
+    }
+    assert by_ref["REQ-VILLE-A"]["is_matched"] is True
+    assert by_ref["REQ-VILLE-B"]["is_matched"] is False
+
+    moved = client.patch(
+        "/me/donor-profile",
+        json={"city": "Ville B"},
+        headers=donor_acc["headers"],
+    )
+    assert moved.status_code == 200
+
+    by_ref = {
+        row["public_ref"]: row
+        for row in client.get("/me/matches", headers=donor_acc["headers"]).json()
+    }
+    # Button now appears for the newly-proximate request...
+    assert by_ref["REQ-VILLE-B"]["is_matched"] is True
+    # ...and disappears for the one tied to the city just left.
+    assert by_ref["REQ-VILLE-A"]["is_matched"] is False
+
+    confirm_b = client.post(
+        "/donations",
+        json={"urgency_request_id": req_b.json()["id"]},
+        headers=donor_acc["headers"],
+    )
+    assert confirm_b.status_code == 201
+
+    confirm_a = client.post(
+        "/donations",
+        json={"urgency_request_id": req_a.json()["id"]},
+        headers=donor_acc["headers"],
+    )
+    assert confirm_a.status_code == 403
+
+
+def test_becoming_unavailable_removes_confirm_eligibility(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    hospital = _recognized_hospital(db_session, city="Zone Demo")
+    donor_acc = make_account(name="Donneur")
+    requester = make_account(name="Demandeur")
+
+    client.post(
+        "/donors",
+        json={"blood_group": "O-", "city": "Zone Demo"},
+        headers=donor_acc["headers"],
+    )
+    created = client.post(
+        "/alerts",
+        json={
+            "public_ref": "REQ-DEMO-UNAVAIL",
+            "blood_group_needed": "O+",
+            "patient_display_name": "A. K.",
+            "hospital_id": str(hospital.id),
+        },
+        headers=requester["headers"],
+    )
+    urgency_id = created.json()["id"]
+
+    matches = client.get("/me/matches", headers=donor_acc["headers"])
+    assert matches.json()[0]["is_matched"] is True
+
+    client.patch(
+        "/me/donor-profile",
+        json={"is_available": False},
+        headers=donor_acc["headers"],
+    )
+
+    matches_after = client.get("/me/matches", headers=donor_acc["headers"])
+    assert matches_after.json()[0]["is_matched"] is False
+
+    blocked = client.post(
+        "/donations",
+        json={"urgency_request_id": urgency_id},
+        headers=donor_acc["headers"],
+    )
+    assert blocked.status_code == 403
 
 
 def test_request_detail_forbidden_for_unrelated_account(

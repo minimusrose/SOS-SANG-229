@@ -5,13 +5,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import get_current_user
+from app.config import get_settings
 from app.db import get_db
 from app.enums import DonationStatus
 from app.geo import geopoint_to_wkt
+from app.matching import is_donor_currently_matched
 from app.models import (
     DonationConfirmation,
     Donor,
-    UrgencyMatch,
     UrgencyRequest,
     User,
 )
@@ -136,16 +137,9 @@ def my_matches(
         .order_by(UrgencyRequest.created_at.desc())
     ).scalars().all()
 
-    matched_ids: set = set()
     confirmed_ids: set = set()
+    radius = get_settings().match_radius_meters
     if donor is not None:
-        matched_ids = set(
-            db.scalars(
-                select(UrgencyMatch.urgency_request_id).where(
-                    UrgencyMatch.donor_id == donor.id,
-                )
-            ).all()
-        )
         confirmed_ids = set(
             db.scalars(
                 select(DonationConfirmation.urgency_request_id).where(
@@ -169,7 +163,12 @@ def my_matches(
             confirmed_donations_count=row.confirmed_donations_count,
             created_at=row.created_at,
             i_confirmed=row.id in confirmed_ids,
-            is_matched=row.id in matched_ids,
+            is_matched=(
+                donor is not None
+                and is_donor_currently_matched(
+                    donor, row.hospital, row.blood_group_needed, radius
+                )
+            ),
         )
         for row in rows
     ]

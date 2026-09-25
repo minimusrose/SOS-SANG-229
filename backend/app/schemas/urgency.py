@@ -128,8 +128,11 @@ class MatchedRequestSummary(UrgencySummary):
     is_matched: bool = Field(
         default=False,
         description=(
-            "True only if this donor was actually matched/alerted for this "
-            "request (donations can only be confirmed for matched requests)."
+            "True only if this donor is CURRENTLY compatible and available "
+            "for this request (blood group, city/GPS proximity, is_available) "
+            "— recomputed live from the donor's profile on every read, not a "
+            "snapshot of who was alerted when the request was created. "
+            "Donations can only be confirmed while this is true."
         ),
     )
 
