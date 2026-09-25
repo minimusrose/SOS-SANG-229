@@ -103,3 +103,7 @@ export const BENIN_COMMUNES_BY_DEPARTEMENT = {
 };
 
 export const DEPARTEMENTS = Object.keys(BENIN_COMMUNES_BY_DEPARTEMENT).sort();
+
+export const ALL_COMMUNES = Object.values(BENIN_COMMUNES_BY_DEPARTEMENT)
+  .flat()
+  .sort((a, b) => a.localeCompare(b, "fr"));

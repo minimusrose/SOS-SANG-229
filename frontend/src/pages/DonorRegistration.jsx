@@ -8,14 +8,14 @@ import {
   isValidBeninPhone,
   stripPhoneSpaces,
 } from "../lib/validation.js";
-import { BENIN_COMMUNES_BY_DEPARTEMENT } from "../lib/benin.js";
+import { ALL_COMMUNES } from "../lib/benin.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import FieldError from "../components/FieldError.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import RequiredMark from "../components/RequiredMark.jsx";
-import Skeleton from "../components/Skeleton.jsx";
+import SearchableSelect from "../components/SearchableSelect.jsx";
 import SubmitButton from "../components/SubmitButton.jsx";
 
 const INITIAL = {
@@ -29,11 +29,6 @@ const INITIAL = {
 };
 
 const GEO_INITIAL = { status: "idle", coords: null, code: null };
-
-// Create a flat sorted list of all 77 communes
-const ALL_COMMUNES = Object.values(BENIN_COMMUNES_BY_DEPARTEMENT)
-  .flat()
-  .sort((a, b) => a.localeCompare(b, "fr"));
 
 export default function DonorRegistration({ onToast }) {
   const { user, register, refreshMe } = useAuth();
@@ -311,26 +306,19 @@ export default function DonorRegistration({ onToast }) {
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="city" className="field-label">
-              Ville / Commune{" "}
-              <RequiredMark valid={Boolean(form.city)} />
-            </label>
-            <select
-              id="city"
-              className="field-input"
-              value={form.city}
-              onChange={update("city")}
-              required
-            >
-              <option value="">Choisir votre commune</option>
-              {ALL_COMMUNES.map((commune) => (
-                <option key={commune} value={commune}>
-                  {commune}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            id="city"
+            label="Ville / Commune"
+            labelExtra={<RequiredMark valid={Boolean(form.city)} />}
+            value={form.city}
+            onChange={(commune) =>
+              setForm((current) => ({ ...current, city: commune }))
+            }
+            options={ALL_COMMUNES}
+            placeholder="Tapez pour rechercher votre commune"
+            showAllOption={false}
+            required
+          />
 
           <fieldset className="rounded-2xl bg-light px-5 py-4">
             <legend className="px-1 text-sm font-bold text-secondary">

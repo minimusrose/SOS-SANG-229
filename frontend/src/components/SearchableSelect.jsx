@@ -7,15 +7,20 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
  * simply filters to an empty list, it never becomes the applied value.
  */
 export default function SearchableSelect({
+  id,
   label,
+  labelExtra,
   value,
   onChange,
   options,
   allLabel = "Toutes",
   placeholder,
+  required = false,
+  showAllOption = true,
 }) {
-  const id = useId();
-  const listId = `${id}-listbox`;
+  const generatedId = useId();
+  const fieldId = id || generatedId;
+  const listId = `${fieldId}-listbox`;
   const [query, setQuery] = useState(value || "");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -86,12 +91,13 @@ export default function SearchableSelect({
 
   return (
     <div className="relative" ref={containerRef}>
-      <label className="field-label" htmlFor={id}>
+      <label className="field-label mb-1.5" htmlFor={fieldId}>
         {label}
+        {labelExtra ? <> {labelExtra}</> : null}
       </label>
       <div className="relative">
         <input
-          id={id}
+          id={fieldId}
           ref={inputRef}
           type="text"
           role="combobox"
@@ -105,6 +111,7 @@ export default function SearchableSelect({
           value={query}
           placeholder={placeholder || allLabel}
           autoComplete="off"
+          required={required}
           onChange={(event) => {
             const next = event.target.value;
             setQuery(next);
@@ -119,7 +126,7 @@ export default function SearchableSelect({
           <button
             type="button"
             onClick={clearSelection}
-            aria-label={`Effacer le filtre ${label}`}
+            aria-label={`Effacer ${label}`}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted hover:text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
@@ -140,19 +147,21 @@ export default function SearchableSelect({
           aria-label={label}
           className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-accent/20 bg-white py-1 shadow-lg"
         >
-          <li
-            role="option"
-            aria-selected={!value}
-            className={`cursor-pointer px-3 py-2 text-sm ${
-              !value ? "bg-primary/10 font-semibold text-primary-strong" : "text-secondary hover:bg-light"
-            }`}
-            onMouseDown={(event) => {
-              event.preventDefault();
-              clearSelection();
-            }}
-          >
-            {allLabel}
-          </li>
+          {showAllOption ? (
+            <li
+              role="option"
+              aria-selected={!value}
+              className={`cursor-pointer px-3 py-2 text-sm ${
+                !value ? "bg-primary/10 font-semibold text-primary-strong" : "text-secondary hover:bg-light"
+              }`}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                clearSelection();
+              }}
+            >
+              {allLabel}
+            </li>
+          ) : null}
           {filtered.length === 0 ? (
             <li className="px-3 py-2 text-sm text-muted">Aucun résultat</li>
           ) : (

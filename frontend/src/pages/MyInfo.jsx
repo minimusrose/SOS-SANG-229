@@ -3,10 +3,11 @@ import { Link } from "react-router-dom";
 import { ApiError, api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { requestPosition } from "../lib/geolocation.js";
-import useCities from "../hooks/useCities.js";
+import { ALL_COMMUNES } from "../lib/benin.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import SearchableSelect from "../components/SearchableSelect.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 import SubmitButton from "../components/SubmitButton.jsx";
 
@@ -25,7 +26,6 @@ export default function MyInfo({ onToast }) {
   const [geoMsg, setGeoMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [justOk, setJustOk] = useState(false);
-  const { cities, state: citiesState, reload: reloadCities } = useCities();
 
   useEffect(() => {
     let cancelled = false;
@@ -193,51 +193,21 @@ export default function MyInfo({ onToast }) {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="field-label" htmlFor="city">
-                Ville / zone{" "}
+            <SearchableSelect
+              id="city"
+              label="Ville / Commune"
+              labelExtra={
                 <span className="font-normal text-primary-strong">(requis)</span>
-              </label>
-              {citiesState === "loading" ? (
-                <Skeleton className="h-11 w-full" />
-              ) : (
-                <select
-                  id="city"
-                  className="field-input"
-                  value={form.city}
-                  onChange={update("city")}
-                  required
-                >
-                  <option value="">
-                    {cities.length === 0 && citiesState !== "error"
-                      ? "Aucune ville disponible pour le moment"
-                      : "Choisir votre zone"}
-                  </option>
-                  {cities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                  {form.city && !cities.includes(form.city) ? (
-                    <option value={form.city}>{form.city}</option>
-                  ) : null}
-                </select>
-              )}
-              {citiesState === "error" ? (
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    className="btn-secondary px-4 py-2 text-sm"
-                    onClick={reloadCities}
-                  >
-                    Recharger la liste
-                  </button>
-                  <span className="text-sm text-muted">
-                    La liste n’a pas pu être chargée.
-                  </span>
-                </div>
-              ) : null}
-            </div>
+              }
+              value={form.city}
+              onChange={(commune) =>
+                setForm((current) => ({ ...current, city: commune }))
+              }
+              options={ALL_COMMUNES}
+              placeholder="Tapez pour rechercher votre commune"
+              showAllOption={false}
+              required
+            />
 
             <fieldset className="rounded-2xl bg-light px-5 py-4">
               <legend className="px-1 text-sm font-bold text-secondary">
