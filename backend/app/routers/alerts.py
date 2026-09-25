@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.config import get_settings
 from app.db import get_db
+from app.duplicates import duplicate_patient_message, find_duplicate_patient_alerts
 from app.enums import UrgencyStatus
 from app.matching import find_compatible_donors
 from app.models import Hospital, UrgencyMatch, UrgencyRequest, User
@@ -63,6 +64,22 @@ def create_alert(
         require_recognized_hospital(hospital)
     except UnrecognizedHospitalError:
         raise _http_unrecognized() from None
+
+    duplicates = find_duplicate_patient_alerts(
+        db,
+        patient_display_name=payload.patient_display_name,
+        blood_group_needed=payload.blood_group_needed,
+    )
+    if duplicates:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "duplicate_patient_alert",
+                "message": duplicate_patient_message(
+                    [row.public_ref for row in duplicates]
+                ),
+            },
+        )
 
     radius = get_settings().match_radius_meters
     matches = find_compatible_donors(

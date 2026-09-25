@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.enums import BloodGroup
-from app.models import Donor, Hospital
+from app.enums import BloodGroup, UrgencyStatus
+from app.models import Donor, Hospital, UrgencyRequest
 from app.rules import UnrecognizedHospitalError, require_recognized_hospital
 
 
@@ -260,7 +260,13 @@ def test_create_urgency_duplicate_public_ref_conflict(
     }
     first = client.post("/alerts", json=payload, headers=account["headers"])
     assert first.status_code == 201
-    second = client.post("/alerts", json=payload, headers=account["headers"])
+    # Different patient so this exercises the public_ref collision itself,
+    # not the (separately tested) duplicate-patient guard.
+    second = client.post(
+        "/alerts",
+        json={**payload, "patient_display_name": "B. L."},
+        headers=account["headers"],
+    )
     assert second.status_code == 409
     assert "public_ref" in second.json()["detail"].lower()
 
@@ -406,13 +412,49 @@ def test_me_requests_are_scoped_to_the_owner(
     assert client.get("/me/requests", headers=other["headers"]).json() == []
 
 
-def test_me_matches_empty_without_donor_profile(
+def test_me_matches_empty_without_any_other_request(
     client: TestClient,
     account: dict,
 ) -> None:
     resp = client.get("/me/matches", headers=account["headers"])
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+def test_me_matches_includes_unmatched_requests_and_excludes_own(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    """The feed now lists every open platform request except the caller's
+    own — including ones this account has no donor match for (is_matched is
+    False and there's no donor profile requirement to see them)."""
+    hospital = _recognized_hospital(db_session)
+    requester = make_account(name="Demandeur")
+    viewer = make_account(name="Spectateur")
+
+    created = client.post(
+        "/alerts",
+        json={
+            "public_ref": "REQ-DEMO-OTHER",
+            "blood_group_needed": "O+",
+            "patient_display_name": "A. K.",
+            "hospital_id": str(hospital.id),
+        },
+        headers=requester["headers"],
+    )
+    assert created.status_code == 201
+
+    # viewer has no donor profile at all, yet still sees the request.
+    seen = client.get("/me/matches", headers=viewer["headers"])
+    assert seen.status_code == 200
+    assert len(seen.json()) == 1
+    assert seen.json()[0]["public_ref"] == "REQ-DEMO-OTHER"
+    assert seen.json()[0]["is_matched"] is False
+    assert seen.json()[0]["i_confirmed"] is False
+
+    # the requester never sees their own request in this feed.
+    assert client.get("/me/matches", headers=requester["headers"]).json() == []
 
 
 def test_donor_profile_read_and_update(client: TestClient, account: dict) -> None:
@@ -581,6 +623,7 @@ def test_full_flow_match_confirm_increments_requester_count(
     assert len(matches.json()) == 1
     assert matches.json()[0]["public_ref"] == "REQ-DEMO-FLOW"
     assert matches.json()[0]["i_confirmed"] is False
+    assert matches.json()[0]["is_matched"] is True
 
     # A random donor account that was not matched cannot confirm.
     stranger = make_account(name="Etranger")
@@ -645,6 +688,226 @@ def test_request_detail_forbidden_for_unrelated_account(
     assert client.get(
         "/requests/REQ-DEMO-PRIV", headers=requester["headers"]
     ).status_code == 200
+
+
+def _create_alert(client, headers, hospital, *, public_ref, name, group, units=1):
+    resp = client.post(
+        "/alerts",
+        json={
+            "public_ref": public_ref,
+            "blood_group_needed": group,
+            "patient_display_name": name,
+            "hospital_id": str(hospital.id),
+            "units_needed": units,
+        },
+        headers=headers,
+    )
+    return resp
+
+
+# --- duplicate-patient guard -----------------------------------------------
+
+
+def test_duplicate_patient_blocks_same_name_and_group(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    hospital = _recognized_hospital(db_session)
+    first = make_account(name="Premier")
+    second = make_account(name="Second")
+
+    created = _create_alert(
+        client,
+        first["headers"],
+        hospital,
+        public_ref="REQ-DUP-0001",
+        name="Jean Dupont",
+        group="O+",
+    )
+    assert created.status_code == 201
+
+    # Same person, different accents/case/whitespace — must still match.
+    blocked = _create_alert(
+        client,
+        second["headers"],
+        hospital,
+        public_ref="REQ-DUP-0002",
+        name="  jéan   DUPONT ",
+        group="O+",
+    )
+    assert blocked.status_code == 409
+    detail = blocked.json()["detail"]
+    assert detail["code"] == "duplicate_patient_alert"
+    assert "REQ-DUP-0001" in detail["message"]
+    assert "REQ-DUP-0002" not in detail["message"]
+
+    # The blocked attempt must not have created a row.
+    assert (
+        db_session.query(UrgencyRequest)
+        .filter_by(public_ref="REQ-DUP-0002")
+        .first()
+        is None
+    )
+
+
+def test_duplicate_patient_name_only_is_not_blocked(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    """Same name but no existing alert shares the blood group: per product
+    decision this is too uncertain to warn about or block — creation must
+    succeed normally."""
+    hospital = _recognized_hospital(db_session)
+    first = make_account(name="Premier")
+    second = make_account(name="Second")
+
+    _create_alert(
+        client,
+        first["headers"],
+        hospital,
+        public_ref="REQ-DUP-0101",
+        name="Awa Koffi",
+        group="O+",
+    )
+    allowed = _create_alert(
+        client,
+        second["headers"],
+        hospital,
+        public_ref="REQ-DUP-0102",
+        name="Awa Koffi",
+        group="A-",
+    )
+    assert allowed.status_code == 201
+
+
+def test_duplicate_patient_fulfilled_existing_is_not_blocked(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    hospital = _recognized_hospital(db_session)
+    first = make_account(name="Premier")
+    second = make_account(name="Second")
+
+    _create_alert(
+        client,
+        first["headers"],
+        hospital,
+        public_ref="REQ-DUP-0201",
+        name="Marie Tossou",
+        group="B+",
+    )
+    row = (
+        db_session.query(UrgencyRequest).filter_by(public_ref="REQ-DUP-0201").one()
+    )
+    row.confirmed_donations_count = row.units_needed
+    db_session.commit()
+
+    allowed = _create_alert(
+        client,
+        second["headers"],
+        hospital,
+        public_ref="REQ-DUP-0202",
+        name="Marie Tossou",
+        group="B+",
+    )
+    assert allowed.status_code == 201
+
+
+def test_duplicate_patient_only_lists_exact_group_matches(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    """A same-name alert with a different blood group is never listed, even
+    when another alert of that same name does match exactly."""
+    hospital = _recognized_hospital(db_session)
+    first = make_account(name="Premier")
+    second = make_account(name="Second")
+    third = make_account(name="Troisieme")
+
+    _create_alert(
+        client,
+        first["headers"],
+        hospital,
+        public_ref="REQ-DUP-0301",
+        name="Koffi Mensah",
+        group="AB+",
+    )
+    _create_alert(
+        client,
+        second["headers"],
+        hospital,
+        public_ref="REQ-DUP-0302",
+        name="Koffi Mensah",
+        group="O-",
+    )
+
+    blocked = _create_alert(
+        client,
+        third["headers"],
+        hospital,
+        public_ref="REQ-DUP-0303",
+        name="Koffi Mensah",
+        group="AB+",
+    )
+    assert blocked.status_code == 409
+    message = blocked.json()["detail"]["message"]
+    assert "REQ-DUP-0301" in message
+    assert "REQ-DUP-0302" not in message
+
+
+def test_duplicate_patient_lists_every_exact_match(
+    client: TestClient,
+    db_session: Session,
+    make_account,
+) -> None:
+    hospital = _recognized_hospital(db_session)
+    first = make_account(name="Premier")
+    second = make_account(name="Second")
+    third = make_account(name="Troisieme")
+
+    _create_alert(
+        client,
+        first["headers"],
+        hospital,
+        public_ref="REQ-DUP-0401",
+        name="Awa Djossou",
+        group="B-",
+    )
+    # Inserted directly: creating it through the guarded endpoint would
+    # itself now be blocked by the very duplicate it is meant to simulate
+    # (e.g. a row that predates this guard).
+    db_session.add(
+        UrgencyRequest(
+            id=uuid4(),
+            public_ref="REQ-DUP-0402",
+            blood_group_needed=BloodGroup.B_NEGATIVE,
+            patient_display_name="Awa Djossou",
+            hospital_id=hospital.id,
+            requester_user_id=UUID(second["user_id"]),
+            status=UrgencyStatus.OPEN,
+            units_needed=1,
+            alerted_donors_count=0,
+            confirmed_donations_count=0,
+        )
+    )
+    db_session.commit()
+
+    blocked = _create_alert(
+        client,
+        third["headers"],
+        hospital,
+        public_ref="REQ-DUP-0403",
+        name="Awa Djossou",
+        group="B-",
+    )
+    assert blocked.status_code == 409
+    message = blocked.json()["detail"]["message"]
+    assert "REQ-DUP-0401" in message
+    assert "REQ-DUP-0402" in message
 
 
 def test_require_recognized_hospital_helper() -> None:

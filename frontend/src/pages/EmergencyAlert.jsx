@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { api } from "../api/client.js";
+import { Link, useNavigate } from "react-router-dom";
+import { ApiError, api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { PHONE_ERROR, isValidPhone } from "../lib/validation.js";
+import {
+  PHONE_FORMAT_ERROR,
+  isValidBeninPhone,
+  stripPhoneSpaces,
+} from "../lib/validation.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
+import DuplicatePatientAlertModal from "../components/DuplicatePatientAlertModal.jsx";
+import FieldError from "../components/FieldError.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import RequiredMark from "../components/RequiredMark.jsx";
@@ -22,6 +28,7 @@ const INITIAL = {
 
 export default function EmergencyAlert({ onToast }) {
   const { user, register } = useAuth();
+  const navigate = useNavigate();
   const needsAccount = !user;
 
   const [form, setForm] = useState(INITIAL);
@@ -29,6 +36,9 @@ export default function EmergencyAlert({ onToast }) {
   const [hospitalsState, setHospitalsState] = useState("loading");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [phoneConflict, setPhoneConflict] = useState(false);
+  const [duplicateMessage, setDuplicateMessage] = useState(null);
 
   const selectedHospital = hospitals.find((item) => item.id === form.hospitalId);
   const canSubmit = Boolean(
@@ -38,7 +48,7 @@ export default function EmergencyAlert({ onToast }) {
       Number(form.unitsNeeded) >= 1 &&
       (!needsAccount ||
         (form.requesterName.trim() &&
-          form.phone.trim() &&
+          isValidBeninPhone(form.phone) &&
           form.password.length >= 8)),
   );
 
@@ -67,23 +77,36 @@ export default function EmergencyAlert({ onToast }) {
     };
   }
 
+  function handlePhoneChange(event) {
+    setForm((current) => ({ ...current, phone: stripPhoneSpaces(event.target.value) }));
+    if (phoneConflict) setPhoneConflict(false);
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!canSubmit || submitting) return;
 
-    if (needsAccount && !isValidPhone(form.phone)) {
-      onToast(PHONE_ERROR);
+    if (needsAccount && !isValidBeninPhone(form.phone)) {
+      setPhoneTouched(true);
       return;
     }
 
     setSubmitting(true);
     try {
       if (needsAccount) {
-        await register({
-          phone: form.phone.trim(),
-          password: form.password,
-          display_name: form.requesterName.trim(),
-        });
+        try {
+          await register({
+            phone: form.phone,
+            password: form.password,
+            display_name: form.requesterName.trim(),
+          });
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 409) {
+            setPhoneConflict(true);
+            return;
+          }
+          throw error;
+        }
       }
       const created = await api.createAlert({
         blood_group_needed: form.bloodGroup,
@@ -99,6 +122,10 @@ export default function EmergencyAlert({ onToast }) {
         `Alerte ${created.public_ref} envoyée. ${count} donneur${count > 1 ? "s" : ""} prévenu${count > 1 ? "s" : ""}.`,
       );
     } catch (error) {
+      if (error instanceof ApiError && error.code === "duplicate_patient_alert") {
+        setDuplicateMessage(error.message);
+        return;
+      }
       onToast(error.message);
     } finally {
       setSubmitting(false);
@@ -148,7 +175,7 @@ export default function EmergencyAlert({ onToast }) {
                   <div className="space-y-2">
                     <label htmlFor="phone" className="field-label">
                       Téléphone{" "}
-                      <RequiredMark valid={isValidPhone(form.phone)} />
+                      <RequiredMark valid={isValidBeninPhone(form.phone)} />
                     </label>
                     <input
                       id="phone"
@@ -156,14 +183,40 @@ export default function EmergencyAlert({ onToast }) {
                       inputMode="tel"
                       className="field-input"
                       value={form.phone}
-                      onChange={update("phone")}
+                      onChange={handlePhoneChange}
+                      onBlur={() => setPhoneTouched(true)}
                       placeholder="+229 XX XX XX XX XX"
                       autoComplete="username"
+                      aria-invalid={
+                        phoneTouched && form.phone && !isValidBeninPhone(form.phone)
+                      }
                       required
                     />
                     <p className="field-hint">
                       Sert d’identifiant de connexion pour suivre vos demandes.
                     </p>
+                    <FieldError
+                      message={
+                        phoneTouched && form.phone && !isValidBeninPhone(form.phone)
+                          ? PHONE_FORMAT_ERROR
+                          : ""
+                      }
+                    />
+                    {phoneConflict ? (
+                      <div className="flex flex-col gap-2 rounded-2xl bg-primary/5 px-4 py-3 text-sm leading-6 text-secondary sm:flex-row sm:items-center sm:justify-between">
+                        <p>
+                          Ce numéro est déjà associé à un compte. Connectez-vous
+                          plutôt.
+                        </p>
+                        <Link
+                          to="/connexion"
+                          state={{ phone: form.phone }}
+                          className="btn-secondary shrink-0 px-4 py-2 text-sm"
+                        >
+                          Se connecter
+                        </Link>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="password" className="field-label">
@@ -214,8 +267,9 @@ export default function EmergencyAlert({ onToast }) {
                   required
                 />
                 <p className="field-hint">
-                  Nom complet du patient : le donneur doit savoir au nom de qui
-                  le don est fait.
+                  Nom et prénoms complet du patient comme écrit sur la carte
+                  d’identité afin que le don soit considéré pour la bonne
+                  personne.
                 </p>
               </div>
 
@@ -297,6 +351,12 @@ export default function EmergencyAlert({ onToast }) {
           </>
         )}
       </div>
+
+      <DuplicatePatientAlertModal
+        open={Boolean(duplicateMessage)}
+        message={duplicateMessage}
+        onCancel={() => navigate("/")}
+      />
     </PageFrame>
   );
 }
