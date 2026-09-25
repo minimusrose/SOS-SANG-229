@@ -5,6 +5,11 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
  * that filters a fixed option list as you type, plus full keyboard support.
  * Selection is restricted to `options` — free text that matches nothing
  * simply filters to an empty list, it never becomes the applied value.
+ *
+ * `options` accepts either a flat string array (value === label, e.g. a
+ * city name) or an array of `{ value, label }` objects when the stored
+ * value differs from what's displayed/searched (e.g. a hospital's id vs.
+ * its name). Both shapes can be mixed freely across consumers.
  */
 export default function SearchableSelect({
   id,
@@ -21,39 +26,54 @@ export default function SearchableSelect({
   const generatedId = useId();
   const fieldId = id || generatedId;
   const listId = `${fieldId}-listbox`;
-  const [query, setQuery] = useState(value || "");
+
+  const normalizedOptions = useMemo(
+    () =>
+      options.map((option) =>
+        typeof option === "string" ? { value: option, label: option } : option,
+      ),
+    [options],
+  );
+  const selected = useMemo(
+    () => normalizedOptions.find((option) => option.value === value) || null,
+    [normalizedOptions, value],
+  );
+
+  const [query, setQuery] = useState(selected?.label || "");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
 
   useEffect(() => {
-    setQuery(value || "");
+    setQuery(selected?.label || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLocaleLowerCase("fr");
-    if (!q || q === value?.toLocaleLowerCase("fr")) return options;
-    return options.filter((option) =>
-      option.toLocaleLowerCase("fr").includes(q),
+    if (!q || q === selected?.label?.toLocaleLowerCase("fr")) return normalizedOptions;
+    return normalizedOptions.filter((option) =>
+      option.label.toLocaleLowerCase("fr").includes(q),
     );
-  }, [query, options, value]);
+  }, [query, normalizedOptions, selected]);
 
   useEffect(() => {
     function handlePointerDown(event) {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setOpen(false);
         setActiveIndex(-1);
-        setQuery(value || "");
+        setQuery(selected?.label || "");
       }
     }
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
 
   function selectOption(option) {
-    onChange(option);
-    setQuery(option);
+    onChange(option.value);
+    setQuery(option.label);
     setOpen(false);
     setActiveIndex(-1);
   }
@@ -84,7 +104,7 @@ export default function SearchableSelect({
         event.preventDefault();
         setOpen(false);
         setActiveIndex(-1);
-        setQuery(value || "");
+        setQuery(selected?.label || "");
       }
     }
   }
@@ -167,14 +187,14 @@ export default function SearchableSelect({
           ) : (
             filtered.map((option, index) => (
               <li
-                key={option}
+                key={option.value}
                 id={`${listId}-opt-${index}`}
                 role="option"
-                aria-selected={value === option}
+                aria-selected={value === option.value}
                 className={`cursor-pointer px-3 py-2 text-sm ${
                   index === activeIndex
                     ? "bg-primary/10 text-primary-strong"
-                    : value === option
+                    : value === option.value
                       ? "font-semibold text-primary-strong"
                       : "text-secondary hover:bg-light"
                 }`}
@@ -183,7 +203,7 @@ export default function SearchableSelect({
                   selectOption(option);
                 }}
               >
-                {option}
+                {option.label}
               </li>
             ))
           )}

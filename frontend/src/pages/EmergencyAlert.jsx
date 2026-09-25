@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError, api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -13,6 +13,7 @@ import FieldError from "../components/FieldError.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import RequiredMark from "../components/RequiredMark.jsx";
+import SearchableSelect from "../components/SearchableSelect.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 import SubmitButton from "../components/SubmitButton.jsx";
 
@@ -42,6 +43,14 @@ export default function EmergencyAlert({ onToast }) {
   const [duplicateMessage, setDuplicateMessage] = useState(null);
 
   const selectedHospital = hospitals.find((item) => item.id === form.hospitalId);
+  const hospitalOptions = useMemo(
+    () =>
+      hospitals.map((hospital) => ({
+        value: hospital.id,
+        label: `${hospital.name} — ${hospital.city}`,
+      })),
+    [hospitals],
+  );
   const canSubmit = Boolean(
     form.bloodGroup &&
       form.patientName.trim() &&
@@ -276,31 +285,32 @@ export default function EmergencyAlert({ onToast }) {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="hospital" className="field-label">
-                  Établissement de santé{" "}
-                  <RequiredMark valid={Boolean(form.hospitalId)} />
-                </label>
                 {hospitalsState === "loading" ? (
-                  <Skeleton className="h-[54px] w-full" />
+                  <>
+                    <label className="field-label">
+                      Établissement de santé{" "}
+                      <RequiredMark valid={Boolean(form.hospitalId)} />
+                    </label>
+                    <Skeleton className="h-[54px] w-full" />
+                  </>
                 ) : (
-                  <select
+                  <SearchableSelect
                     id="hospital"
-                    className="field-input"
+                    label="Établissement de santé"
+                    labelExtra={<RequiredMark valid={Boolean(form.hospitalId)} />}
                     value={form.hospitalId}
-                    onChange={update("hospitalId")}
-                    required
-                  >
-                    <option value="">
-                      {hospitals.length === 0 && hospitalsState !== "error"
+                    onChange={(hospitalId) =>
+                      setForm((current) => ({ ...current, hospitalId }))
+                    }
+                    options={hospitalOptions}
+                    placeholder={
+                      hospitals.length === 0 && hospitalsState !== "error"
                         ? "Aucun établissement disponible pour le moment"
-                        : "Choisir un établissement"}
-                    </option>
-                    {hospitals.map((hospital) => (
-                      <option key={hospital.id} value={hospital.id}>
-                        {hospital.name} — {hospital.city}
-                      </option>
-                    ))}
-                  </select>
+                        : "Tapez pour rechercher un établissement"
+                    }
+                    showAllOption={false}
+                    required
+                  />
                 )}
                 {hospitalsState === "error" ? (
                   <div className="flex flex-wrap items-center gap-3">
