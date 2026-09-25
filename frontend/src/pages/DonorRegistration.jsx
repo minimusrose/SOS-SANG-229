@@ -20,6 +20,7 @@ const INITIAL = {
   bloodGroup: "",
   city: "",
   gpsConsent: false,
+  legalConsent: false,
 };
 
 const GEO_INITIAL = { status: "idle", coords: null, code: null };
@@ -41,6 +42,7 @@ export default function DonorRegistration({ onToast }) {
   const canSubmit = Boolean(
     form.bloodGroup &&
       form.city &&
+      form.legalConsent &&
       (!needsAccount ||
         (form.displayName.trim() &&
           form.phone.trim() &&
@@ -309,6 +311,23 @@ export default function DonorRegistration({ onToast }) {
                     ? "Position indisponible — le rapprochement se fera à l’échelle de votre ville."
                     : "Sans position, le rapprochement se fait à l’échelle de votre ville."}
             </p>
+          </fieldset>
+
+          <fieldset className="rounded-2xl bg-light px-5 py-4">
+            <legend className="px-1 text-sm font-bold text-secondary">
+              Conditions d'utilisation
+            </legend>
+            <label className="mt-2 flex items-start gap-3 text-sm leading-6 text-secondary">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-accent text-primary focus:ring-primary"
+                checked={form.legalConsent}
+                onChange={update("legalConsent")}
+              />
+              <span>
+                J'accepte les <Link to="/cgu" target="_blank" className="font-semibold text-primary underline">Conditions Générales d'Utilisation</Link> et la <Link to="/politique-confidentialite" target="_blank" className="font-semibold text-primary underline">Politique de confidentialité</Link>.
+              </span>
+            </label>
           </fieldset>
 
           <div className="space-y-2">
