@@ -119,7 +119,7 @@ def my_requests(
 @router.get(
     "/matches",
     response_model=list[MatchedRequestSummary],
-    summary="Requests I was matched to as a donor",
+    summary="Open platform requests visible to this account (excludes its own)",
 )
 def my_matches(
     db: Session = Depends(get_db),
@@ -128,25 +128,32 @@ def my_matches(
     donor = db.scalars(
         select(Donor).where(Donor.user_id == current_user.id)
     ).first()
-    if donor is None:
-        return []
 
     rows = db.execute(
         select(UrgencyRequest)
-        .join(UrgencyMatch, UrgencyMatch.urgency_request_id == UrgencyRequest.id)
         .options(selectinload(UrgencyRequest.hospital))
-        .where(UrgencyMatch.donor_id == donor.id)
+        .where(UrgencyRequest.requester_user_id != current_user.id)
         .order_by(UrgencyRequest.created_at.desc())
     ).scalars().all()
 
-    confirmed_ids = set(
-        db.scalars(
-            select(DonationConfirmation.urgency_request_id).where(
-                DonationConfirmation.donor_id == donor.id,
-                DonationConfirmation.status == DonationStatus.CONFIRMED,
-            )
-        ).all()
-    )
+    matched_ids: set = set()
+    confirmed_ids: set = set()
+    if donor is not None:
+        matched_ids = set(
+            db.scalars(
+                select(UrgencyMatch.urgency_request_id).where(
+                    UrgencyMatch.donor_id == donor.id,
+                )
+            ).all()
+        )
+        confirmed_ids = set(
+            db.scalars(
+                select(DonationConfirmation.urgency_request_id).where(
+                    DonationConfirmation.donor_id == donor.id,
+                    DonationConfirmation.status == DonationStatus.CONFIRMED,
+                )
+            ).all()
+        )
 
     return [
         MatchedRequestSummary(
@@ -162,6 +169,7 @@ def my_matches(
             confirmed_donations_count=row.confirmed_donations_count,
             created_at=row.created_at,
             i_confirmed=row.id in confirmed_ids,
+            is_matched=row.id in matched_ids,
         )
         for row in rows
     ]

@@ -2,31 +2,34 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { isCompatible } from "../lib/bloodCompatibility.js";
+import CompatibilityBadge from "../components/CompatibilityBadge.jsx";
+import DemoBanner from "../components/DemoBanner.jsx";
 import PageFrame from "../components/PageFrame.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import RequestFilters, { EMPTY_FILTERS } from "../components/RequestFilters.jsx";
 import { RevealGroup } from "../components/Reveal.jsx";
 import { SkeletonCard } from "../components/Skeleton.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
-import StatusFilter from "../components/StatusFilter.jsx";
-import {
-  countByDisplayStatus,
-  displayStatus,
-  formatDateTime,
-  STATUS_EMPTY_LABEL,
-} from "../lib/status.js";
+import { displayStatus, formatDateTime } from "../lib/status.js";
+
+// Derives the badge state from the current donor's own blood group. Only
+// isCompatible() (the single compatibility source of truth) decides the
+// compatible/incompatible verdict — "unknown" is purely a display fallback
+// for accounts with no blood group on file.
+function compatibilityState(myBloodGroup, neededGroup) {
+  if (!myBloodGroup) return "unknown";
+  return isCompatible(myBloodGroup, neededGroup) ? "compatible" : "incompatible";
+}
 
 export default function CompatibleRequests({ onToast }) {
   const { user } = useAuth();
   const [rows, setRows] = useState([]);
   const [state, setState] = useState("loading");
   const [confirmingId, setConfirmingId] = useState(null);
-  const [filter, setFilter] = useState("all");
-
-  const counts = useMemo(() => countByDisplayStatus(rows), [rows]);
-  const filteredRows = useMemo(
-    () => (filter === "all" ? rows : rows.filter((row) => displayStatus(row) === filter)),
-    [rows, filter],
-  );
+  const [myBloodGroup, setMyBloodGroup] = useState(null);
+  const [hospitalNames, setHospitalNames] = useState([]);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -44,6 +47,74 @@ export default function CompatibleRequests({ onToast }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.has_donor_profile) {
+      setMyBloodGroup(null);
+      return undefined;
+    }
+    api
+      .getDonorProfile()
+      .then((profile) => {
+        if (!cancelled) setMyBloodGroup(profile.blood_group);
+      })
+      .catch(() => {
+        if (!cancelled) setMyBloodGroup(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.has_donor_profile]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .listRecognizedHospitals()
+      .then((list) => {
+        if (cancelled) return;
+        const names = Array.from(
+          new Set((Array.isArray(list) ? list : []).map((h) => h.name).filter(Boolean)),
+        ).sort((a, b) => a.localeCompare(b, "fr"));
+        setHospitalNames(names);
+      })
+      .catch(() => {
+        if (!cancelled) setHospitalNames([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const cityOptions = useMemo(
+    () =>
+      Array.from(new Set(rows.map((row) => row.hospital_city).filter(Boolean))).sort(
+        (a, b) => a.localeCompare(b, "fr"),
+      ),
+    [rows],
+  );
+
+  const filteredRows = useMemo(
+    () =>
+      rows.filter((row) => {
+        if (filters.status !== "all" && displayStatus(row) !== filters.status) {
+          return false;
+        }
+        if (filters.city && row.hospital_city !== filters.city) return false;
+        if (filters.hospital && row.hospital_name !== filters.hospital) return false;
+        if (filters.compat !== "all") {
+          if (compatibilityState(myBloodGroup, row.blood_group_needed) !== filters.compat) {
+            return false;
+          }
+        }
+        if (filters.reference) {
+          const needle = filters.reference.trim().toLowerCase();
+          if (needle && !row.public_ref.toLowerCase().includes(needle)) return false;
+        }
+        return true;
+      }),
+    [rows, filters, myBloodGroup],
+  );
 
   async function handleConfirm(item) {
     if (confirmingId) return;
@@ -68,9 +139,19 @@ export default function CompatibleRequests({ onToast }) {
     <PageFrame wide>
       <div className="space-y-8">
         <PageHeader kicker="Donneur" title="Demandes" highlight="en cours">
-          Les urgences pour lesquelles votre profil est compatible. Confirmez
-          votre don après être passé à l’établissement.
+          Toutes les demandes de sang actives sur la plateforme, hors les
+          vôtres. Votre compatibilité est indiquée sur chaque carte.
         </PageHeader>
+
+        {!user?.has_donor_profile ? (
+          <DemoBanner title="Compatibilité">
+            Enregistrez votre groupe sanguin pour voir votre compatibilité
+            avec chaque demande.{" "}
+            <Link to="/donneur/inscription" className="font-bold underline">
+              Devenir donneur
+            </Link>
+          </DemoBanner>
+        ) : null}
 
         {state === "loading" ? (
           <div className="grid gap-4 md:grid-cols-2">
@@ -91,34 +172,21 @@ export default function CompatibleRequests({ onToast }) {
           </div>
         ) : rows.length === 0 ? (
           <div className="card text-center">
-            {user?.has_donor_profile ? (
-              <>
-                <p className="text-lg font-extrabold text-secondary">
-                  Aucune demande compatible
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted">
-                  Vous serez prévenu dès qu’une urgence correspondra à votre
-                  groupe et à votre zone.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-lg font-extrabold text-secondary">
-                  Vous n’êtes pas encore donneur
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted">
-                  Enregistrez votre groupe sanguin et votre zone pour recevoir
-                  des demandes.
-                </p>
-                <Link to="/donneur/inscription" className="btn-primary mt-5">
-                  Devenir donneur
-                </Link>
-              </>
-            )}
+            <p className="text-lg font-extrabold text-secondary">
+              Aucune demande pour le moment
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Il n’y a aucune demande active sur la plateforme en ce moment.
+            </p>
           </div>
         ) : (
           <div className="space-y-6">
-            <StatusFilter value={filter} onChange={setFilter} counts={counts} />
+            <RequestFilters
+              filters={filters}
+              onChange={setFilters}
+              cities={cityOptions}
+              hospitals={hospitalNames}
+            />
             <p aria-live="polite" className="sr-only">
               {filteredRows.length} demande{filteredRows.length > 1 ? "s" : ""}{" "}
               affichée{filteredRows.length > 1 ? "s" : ""}.
@@ -127,7 +195,7 @@ export default function CompatibleRequests({ onToast }) {
             {filteredRows.length === 0 ? (
               <div className="card text-center">
                 <p className="text-sm leading-6 text-muted">
-                  Aucune demande {STATUS_EMPTY_LABEL[filter]} pour le moment.
+                  Aucune demande ne correspond à ces critères.
                 </p>
               </div>
             ) : (
@@ -135,13 +203,17 @@ export default function CompatibleRequests({ onToast }) {
                 {filteredRows.map((item) => {
                   const closed =
                     item.status === "fulfilled" || item.status === "cancelled";
+                  const compat = compatibilityState(myBloodGroup, item.blood_group_needed);
                   return (
                     <li key={item.id} className="card space-y-4">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <p className="font-mono text-sm font-bold text-secondary">
                           {item.public_ref}
                         </p>
-                        <StatusBadge status={displayStatus(item)} />
+                        <div className="flex flex-col items-end gap-1.5">
+                          <StatusBadge status={displayStatus(item)} />
+                          <CompatibilityBadge state={compat} />
+                        </div>
                       </div>
                       <dl className="grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
                         <div>
@@ -181,7 +253,7 @@ export default function CompatibleRequests({ onToast }) {
                         <p className="text-sm font-semibold text-success">
                           Don confirmé ✓
                         </p>
-                      ) : (
+                      ) : item.is_matched ? (
                         <button
                           type="button"
                           className="btn-primary w-full"
@@ -194,7 +266,7 @@ export default function CompatibleRequests({ onToast }) {
                               ? "Demande clôturée"
                               : "Confirmer mon don"}
                         </button>
-                      )}
+                      ) : null}
                     </li>
                   );
                 })}
