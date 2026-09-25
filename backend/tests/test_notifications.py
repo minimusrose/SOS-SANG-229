@@ -18,7 +18,7 @@ from app.notifications import (
     SmsSendResult,
     build_urgency_sms,
     get_sms_sender,
-    send_live_robase_sms,
+    send_live_at_sms,
     send_urgency_sms,
 )
 
@@ -35,14 +35,14 @@ def test_send_urgency_sms_simulate_does_not_call_live(
     _force_settings(
         monkeypatch,
         SMS_MODE="simulate",
-        ROBASE_API_KEY="fake_token_not_a_secret",
-        ROBASE_SENDER_ID="SOSSANG",
+        AT_API_KEY="fake_token_not_a_secret",
+        AT_USERNAME="sandbox",
     )
 
     def _boom(**kwargs):  # noqa: ANN003
-        raise AssertionError("live Robase path must not run when SMS_MODE=simulate")
+        raise AssertionError("live AT path must not run when SMS_MODE=simulate")
 
-    monkeypatch.setattr("app.notifications.send_live_robase_sms", _boom)
+    monkeypatch.setattr("app.notifications.send_live_at_sms", _boom)
     result = send_urgency_sms("+22900000001", "SOS Sang 229 demo")
     assert result.ok is True
     assert result.simulated is True
@@ -59,16 +59,16 @@ def test_live_path_not_selected_without_credentials(
     _force_settings(
         monkeypatch,
         SMS_MODE="live",
-        ROBASE_API_KEY="",
-        ROBASE_SENDER_ID="",
+        AT_API_KEY="",
+        AT_USERNAME="",
     )
     called = {"live": False}
 
     def _track(**kwargs):  # noqa: ANN003
         called["live"] = True
-        return send_live_robase_sms(**kwargs)
+        return send_live_at_sms(**kwargs)
 
-    monkeypatch.setattr("app.notifications.send_live_robase_sms", _track)
+    monkeypatch.setattr("app.notifications.send_live_at_sms", _track)
     result = send_urgency_sms("+22900000001", "SOS Sang 229 demo")
     assert called["live"] is False
     assert result.simulated is True
@@ -81,8 +81,8 @@ def test_live_stub_invoked_only_when_mode_and_credentials(
     _force_settings(
         monkeypatch,
         SMS_MODE="live",
-        ROBASE_API_KEY="fake_token_not_a_secret",
-        ROBASE_SENDER_ID="SOSSANG",
+        AT_API_KEY="fake_token_not_a_secret",
+        AT_USERNAME="sandbox",
     )
     called = {"n": 0}
 
@@ -97,7 +97,7 @@ def test_live_stub_invoked_only_when_mode_and_credentials(
             error="live_not_implemented",
         )
 
-    monkeypatch.setattr("app.notifications.send_live_robase_sms", _fake_live)
+    monkeypatch.setattr("app.notifications.send_live_at_sms", _fake_live)
     result = send_urgency_sms("+22900000001", "SOS Sang 229 demo")
     assert called["n"] == 1
     assert result.simulated is False
@@ -148,14 +148,14 @@ def test_alert_create_persists_simulated_notifications(
     _force_settings(
         monkeypatch,
         SMS_MODE="simulate",
-        ROBASE_API_KEY="fake_token_not_a_secret",
-        ROBASE_SENDER_ID="SOSSANG",
+        AT_API_KEY="fake_token_not_a_secret",
+        AT_USERNAME="sandbox",
     )
 
     def _boom(**kwargs):  # noqa: ANN003
-        raise AssertionError("POST /alerts must not call live Robase in simulate")
+        raise AssertionError("POST /alerts must not call live AT in simulate")
 
-    monkeypatch.setattr("app.notifications.send_live_robase_sms", _boom)
+    monkeypatch.setattr("app.notifications.send_live_at_sms", _boom)
 
     hospital = Hospital(
         id=uuid4(),

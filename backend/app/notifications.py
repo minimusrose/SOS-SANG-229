@@ -76,37 +76,35 @@ def build_urgency_sms(
 
 import httpx
 
-def send_live_robase_sms(
+def send_live_at_sms(
     *,
     to_phone: str,
     message: str,
     api_key: str,
-    sender_id: str,
+    username: str,
 ) -> SmsSendResult:
-    """Live Robase API implementation."""
-    url = "https://api.robase.dev/v1/sms/send"
+    """Live Africa's Talking API implementation."""
+    url = "https://api.sandbox.africastalking.com/version1/messaging" if username == "sandbox" else "https://api.africastalking.com/version1/messaging"
     
-    # Using httpx synchronously since this function runs synchronously,
-    # or you can use a fire-and-forget background task in the router.
-    # For MVP we keep it simple blocking request.
     try:
         response = httpx.post(
             url,
             headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
+                "apiKey": api_key,
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
             },
-            json={
-                "phone_number": to_phone,
+            data={
+                "username": username,
+                "to": to_phone,
                 "message": message,
-                "sender": sender_id,
             },
             timeout=10.0
         )
         response.raise_for_status()
         
         logger.info(
-            "SMS live Robase success for %s",
+            "SMS live AT success for %s",
             mask_phone(to_phone),
         )
         return SmsSendResult(
@@ -118,7 +116,7 @@ def send_live_robase_sms(
         )
     except Exception as e:
         logger.error(
-            "SMS live Robase failed for %s: %s",
+            "SMS live AT failed for %s: %s",
             mask_phone(to_phone),
             str(e)
         )
@@ -150,25 +148,25 @@ class SimulateSmsSender:
         )
 
 
-class LiveRobaseSender:
-    """Gated live path for Robase."""
+class LiveATSender:
+    """Gated live path for Africa's Talking."""
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
     def send_urgency_sms(self, to_phone: str, message: str) -> SmsSendResult:
-        return send_live_robase_sms(
+        return send_live_at_sms(
             to_phone=to_phone,
             message=message,
-            api_key=self._settings.robase_api_key.get_secret_value(),
-            sender_id=self._settings.robase_sender_id,
+            api_key=self._settings.at_api_key.get_secret_value(),
+            username=self._settings.at_username,
         )
 
 
 def get_sms_sender(settings: Settings | None = None) -> SmsSender:
     cfg = settings or get_settings()
     if cfg.sms_live_enabled():
-        return LiveRobaseSender(cfg)
+        return LiveATSender(cfg)
     return SimulateSmsSender()
 
 
