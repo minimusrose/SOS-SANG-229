@@ -74,37 +74,64 @@ def build_urgency_sms(
     )
 
 
-def send_live_twilio_sms(
+import httpx
+
+def send_live_at_sms(
     *,
     to_phone: str,
     message: str,
-    account_sid: str,
-    auth_token: str,
-    from_number: str,
+    api_key: str,
+    username: str,
 ) -> SmsSendResult:
-    """Live Twilio hook.
-
-    Isolated so tests can assert it is never called in simulate mode.
-    This MVP does not open a network socket even when selected.
-    Credentials and full phones must not be logged.
-    """
-    del account_sid, auth_token, from_number, message
-    logger.warning(
-        "SMS live stub invoked for %s (no Twilio HTTP, live send not implemented)",
-        mask_phone(to_phone),
-    )
-    return SmsSendResult(
-        ok=False,
-        simulated=False,
-        channel=CHANNEL_LIVE,
-        mode=SMS_MODE_LIVE,
-        status=STATUS_FAILED,
-        error="live_not_implemented",
-    )
+    """Live Africa's Talking API implementation."""
+    url = "https://api.sandbox.africastalking.com/version1/messaging" if username == "sandbox" else "https://api.africastalking.com/version1/messaging"
+    
+    try:
+        response = httpx.post(
+            url,
+            headers={
+                "apiKey": api_key,
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            data={
+                "username": username,
+                "to": to_phone,
+                "message": message,
+            },
+            timeout=10.0
+        )
+        response.raise_for_status()
+        
+        logger.info(
+            "SMS live AT success for %s",
+            mask_phone(to_phone),
+        )
+        return SmsSendResult(
+            ok=True,
+            simulated=False,
+            channel=CHANNEL_LIVE,
+            mode=SMS_MODE_LIVE,
+            status=STATUS_SENT,
+        )
+    except Exception as e:
+        logger.error(
+            "SMS live AT failed for %s: %s",
+            mask_phone(to_phone),
+            str(e)
+        )
+        return SmsSendResult(
+            ok=False,
+            simulated=False,
+            channel=CHANNEL_LIVE,
+            mode=SMS_MODE_LIVE,
+            status=STATUS_FAILED,
+            error=str(e),
+        )
 
 
 class SimulateSmsSender:
-    """Records a simulated success. Never calls Twilio."""
+    """Records a simulated success. Never hits network."""
 
     def send_urgency_sms(self, to_phone: str, message: str) -> SmsSendResult:
         del message
@@ -121,26 +148,25 @@ class SimulateSmsSender:
         )
 
 
-class LiveTwilioSender:
-    """Gated live path. Instantiated only when live + credentials are set."""
+class LiveATSender:
+    """Gated live path for Africa's Talking."""
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
     def send_urgency_sms(self, to_phone: str, message: str) -> SmsSendResult:
-        return send_live_twilio_sms(
+        return send_live_at_sms(
             to_phone=to_phone,
             message=message,
-            account_sid=self._settings.twilio_account_sid,
-            auth_token=self._settings.twilio_auth_token.get_secret_value(),
-            from_number=self._settings.twilio_from_number,
+            api_key=self._settings.at_api_key.get_secret_value(),
+            username=self._settings.at_username,
         )
 
 
 def get_sms_sender(settings: Settings | None = None) -> SmsSender:
     cfg = settings or get_settings()
     if cfg.sms_live_enabled():
-        return LiveTwilioSender(cfg)
+        return LiveATSender(cfg)
     return SimulateSmsSender()
 
 

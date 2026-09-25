@@ -8,7 +8,7 @@ import {
   isValidBeninPhone,
   stripPhoneSpaces,
 } from "../lib/validation.js";
-import useCities from "../hooks/useCities.js";
+import { BENIN_COMMUNES_BY_DEPARTEMENT } from "../lib/benin.js";
 import BloodGroupSelect from "../components/BloodGroupSelect.jsx";
 import DemoBanner from "../components/DemoBanner.jsx";
 import FieldError from "../components/FieldError.jsx";
@@ -25,9 +25,15 @@ const INITIAL = {
   bloodGroup: "",
   city: "",
   gpsConsent: false,
+  legalConsent: false,
 };
 
 const GEO_INITIAL = { status: "idle", coords: null, code: null };
+
+// Create a flat sorted list of all 77 communes
+const ALL_COMMUNES = Object.values(BENIN_COMMUNES_BY_DEPARTEMENT)
+  .flat()
+  .sort((a, b) => a.localeCompare(b, "fr"));
 
 export default function DonorRegistration({ onToast }) {
   const { user, register, refreshMe } = useAuth();
@@ -39,11 +45,11 @@ export default function DonorRegistration({ onToast }) {
   const [result, setResult] = useState(null);
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [phoneConflict, setPhoneConflict] = useState(false);
-  const { cities, state: citiesState, reload: reloadCities } = useCities();
 
   const canSubmit = Boolean(
     form.bloodGroup &&
       form.city &&
+      form.legalConsent &&
       (!needsAccount ||
         (form.displayName.trim() &&
           isValidBeninPhone(form.phone) &&
@@ -54,6 +60,7 @@ export default function DonorRegistration({ onToast }) {
     return (event) => {
       const value =
         event.target.type === "checkbox" ? event.target.checked : event.target.value;
+      
       setForm((current) => ({ ...current, [field]: value }));
     };
   }
@@ -306,45 +313,23 @@ export default function DonorRegistration({ onToast }) {
 
           <div className="space-y-2">
             <label htmlFor="city" className="field-label">
-              Ville / zone{" "}
+              Ville / Commune{" "}
               <RequiredMark valid={Boolean(form.city)} />
             </label>
-            {citiesState === "loading" ? (
-              <Skeleton className="h-[54px] w-full" />
-            ) : (
-              <select
-                id="city"
-                className="field-input"
-                value={form.city}
-                onChange={update("city")}
-                required
-              >
-                <option value="">
-                  {cities.length === 0 && citiesState !== "error"
-                    ? "Aucune ville disponible pour le moment"
-                    : "Choisir votre zone"}
+            <select
+              id="city"
+              className="field-input"
+              value={form.city}
+              onChange={update("city")}
+              required
+            >
+              <option value="">Choisir votre commune</option>
+              {ALL_COMMUNES.map((commune) => (
+                <option key={commune} value={commune}>
+                  {commune}
                 </option>
-                {cities.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
-                ))}
-              </select>
-            )}
-            {citiesState === "error" ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  className="btn-secondary px-4 py-2 text-sm"
-                  onClick={reloadCities}
-                >
-                  Recharger la liste
-                </button>
-                <span className="text-sm text-muted">
-                  La liste n’a pas pu être chargée.
-                </span>
-              </div>
-            ) : null}
+              ))}
+            </select>
           </div>
 
           <fieldset className="rounded-2xl bg-light px-5 py-4">
@@ -372,6 +357,23 @@ export default function DonorRegistration({ onToast }) {
                     ? "Position indisponible — le rapprochement se fera à l’échelle de votre ville."
                     : "Sans position, le rapprochement se fait à l’échelle de votre ville."}
             </p>
+          </fieldset>
+
+          <fieldset className="rounded-2xl bg-light px-5 py-4">
+            <legend className="px-1 text-sm font-bold text-secondary">
+              Conditions d'utilisation
+            </legend>
+            <label className="mt-2 flex items-start gap-3 text-sm leading-6 text-secondary">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded border-accent text-primary focus:ring-primary"
+                checked={form.legalConsent}
+                onChange={update("legalConsent")}
+              />
+              <span>
+                J'accepte les <Link to="/cgu" target="_blank" className="font-semibold text-primary underline">Conditions Générales d'Utilisation</Link> et la <Link to="/politique-confidentialite" target="_blank" className="font-semibold text-primary underline">Politique de confidentialité</Link>.
+              </span>
+            </label>
           </fieldset>
 
           <div className="space-y-2">

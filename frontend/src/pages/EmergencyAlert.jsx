@@ -24,6 +24,7 @@ const INITIAL = {
   patientName: "",
   hospitalId: "",
   unitsNeeded: "1",
+  legalConsent: false,
 };
 
 export default function EmergencyAlert({ onToast }) {
@@ -45,6 +46,7 @@ export default function EmergencyAlert({ onToast }) {
     form.bloodGroup &&
       form.patientName.trim() &&
       selectedHospital?.is_recognized &&
+      form.legalConsent &&
       Number(form.unitsNeeded) >= 1 &&
       (!needsAccount ||
         (form.requesterName.trim() &&
@@ -329,6 +331,23 @@ export default function EmergencyAlert({ onToast }) {
                   onChange={update("unitsNeeded")}
                 />
               </div>
+
+              <fieldset className="rounded-2xl bg-light px-5 py-4">
+                <legend className="px-1 text-sm font-bold text-secondary">
+                  Conditions d'utilisation
+                </legend>
+                <label className="mt-2 flex items-start gap-3 text-sm leading-6 text-secondary">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-accent text-primary focus:ring-primary"
+                    checked={form.legalConsent}
+                    onChange={(e) => setForm((curr) => ({ ...curr, legalConsent: e.target.checked }))}
+                  />
+                  <span>
+                    J'accepte les <Link to="/cgu" target="_blank" className="font-semibold text-primary underline">Conditions Générales d'Utilisation</Link> et la <Link to="/politique-confidentialite" target="_blank" className="font-semibold text-primary underline">Politique de confidentialité</Link>.
+                  </span>
+                </label>
+              </fieldset>
 
               <div className="space-y-2">
                 <SubmitButton
